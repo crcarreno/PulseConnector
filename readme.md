@@ -24,6 +24,7 @@ This project enables querying your local databases from a remote server securely
 
 ---
 
+
 ## Configuration (`config.json`)
 
 Example configuration file:
