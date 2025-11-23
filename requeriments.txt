@@ -1,0 +1,8 @@
+Flask>=2.0
+sshtunnel
+SQLAlchemy
+pymysql         # MySQL
+psycopg2-binary # Postgres
+pyodbc          # SQL Server (Windows)
+PySide6
+python-dotenv
