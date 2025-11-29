@@ -8,6 +8,8 @@ This project enables querying your local databases from a remote server securely
 
 ---
 
+## Website: https://pulseconnector.ecuarobot.com
+
 ## Features
 
 - **GUI (PySide6)** for:
@@ -24,7 +26,14 @@ This project enables querying your local databases from a remote server securely
 
 ---
 
+## New Features
 
+*November 29, 2025*
+- ODATA allows data entry via JSON
+- ODATA allows partial or complete updates of records via JSON.
+- The configuration has a separate screen.
+
+---
 ## Configuration (`config.json`)
 
 Example configuration file:
@@ -122,14 +131,90 @@ First view
 ---
 # Use
 
-## Test
+## Test server
 http://localhost:4545/status
 
-## Mysql
-http://localhost:4545/odata/mi_tabla?$select=id,name&$filter=age gt 30&$top=10
-http://localhost:4545/odata/customers?$select=id,company&$filter=city%20gt%20Miami
 
-## Postgresql
-http://localhost:4545/odata/customers?$select=customer_id,company_name&$filter=city%20gt%20Miami
+# Instructions
 
+## Select
+
+**/odatab**: the web route
+
+**/customer**: the table
+
+**?**: add parameter in url
+
+**$select**: statement that emulates a select
+
+**id, company**: attributes of table
+
+**Example:** 
+```text
+http://localhost:4545/odata/customers?$select=id,company
+```
+## $filters
+
+**eq**: atributes c, v: c == v
+
+**ne**: atributes c, v:  c != v,
+
+**gt**: atributes c, v:  c > v,
+
+**lt**: atributes c, v:  c < v,
+
+**ge**: atributes c, v:  c >= v,
+
+**le**: atributes c, v:  c <= v,
+
+**like**: atributes c, v:  c.like(v)
+
+**Test example:** 
+```text
+/data/customers?$select=id,company
+        
+/odata/products?$filter=precio gt 10
+
+/odata/users?$filter=activo eq true
+
+/odata/orders?$select=id,ship_name&$filter=ship_name like 'Karen%'
+```
+
+## Top
+```text
+/odata/Logs?$top=50
+```
+
+## Order by
+```text
+/odata/products?$orderby=precio desc
+
+/odata/users?$orderby=nombre asc
+```
+## Combinations
+```text
+/odata/Productos?$select=id,nombre,precio&$filter=precio gt 20&$orderby=precio desc&$top=10
+```
 ![PulseConnector USE](images/screenshots/capture1.png)
+
+---
+# Inserts
+
+## Test using postman
+
+![capture3.png](images/screenshots/capture3.png)
+
+
+# Update
+
+## Total (PUT) - Test using postman
+
+![capture4.png](images/screenshots/capture4.png)
+
+
+## Partial (PATCH) - Test using postman
+
+![capture5.png](images/screenshots/capture5.png)
+
+
+

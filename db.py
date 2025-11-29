@@ -1,5 +1,5 @@
 # db.py
-from sqlalchemy import create_engine, MetaData, Table, select, text
+from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update
 from sqlalchemy.sql import asc, desc
 from urllib.parse import quote_plus
 
@@ -46,6 +46,7 @@ def build_connection_string(cfg):
     raise Exception(f"Dialect '{dialect}' not supported")
 
 class DB:
+
     def __init__(self, cfg):
 
         try:
@@ -55,7 +56,6 @@ class DB:
             self.meta.reflect(bind=self.engine)
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
-
 
     def get_table(self, table_name):
         try:
@@ -114,8 +114,11 @@ class DB:
             "le": lambda c, v: c <= v,
             "like": lambda c, v: c.like(v)
         }
+
         clauses = []
+
         parts = [p.strip() for p in filter_str.split(" and ")]
+
         for p in parts:
             # ejemplo: name eq 'juan'  -> split en 3
             toks = p.split(" ")
@@ -146,3 +149,51 @@ class DB:
             from sqlalchemy import and_
             return and_(*clauses)
         return None
+
+    # ---------- INSERTAR REGISTRO ----------
+    def insert_odata(self, table_name, data: dict):
+        """
+        Inserta un registro en la tabla usando SQLAlchemy Core.
+        Retorna el ID insertado si lo hay.
+        """
+        try:
+            table = self.get_table(table_name)
+            stmt = insert(table).values(**data)
+
+            with self.engine.begin() as conn:
+                result = conn.execute(stmt)
+
+                # Si la tabla tiene PK autoincremental, devolverla
+                try:
+                    return {"inserted_id": result.inserted_primary_key[0]}
+                except:
+                    return {"status": "ok"}
+
+        except Exception as e:
+            raise RuntimeError(f"Insert error: {e}")
+
+
+    # ---------- ACTUALIZAR REGISTRO ----------
+    def update_odata(self, table_name, key_column: str, key_value, data: dict):
+        """
+        Actualiza un registro según su llave primaria o columna clave.
+        Retorna cuántas filas se actualizaron.
+        """
+        try:
+            table = self.get_table(table_name)
+
+            if key_column not in table.c:
+                raise Exception(f"Column '{key_column}' not found in table '{table_name}'")
+
+            stmt = (
+                update(table)
+                .where(table.c[key_column] == key_value)
+                .values(**data)
+            )
+
+            with self.engine.begin() as conn:
+                result = conn.execute(stmt)
+                return {"updated": result.rowcount}
+
+        except Exception as e:
+            raise RuntimeError(f"Update error: {e}")

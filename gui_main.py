@@ -1,8 +1,8 @@
-import json
+import json, requests
 
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
-    QComboBox, QApplication, QDialog, QMenuBar, QMessageBox
+    QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
 from PySide6.QtCore import QThread, Signal
 
 from gui_jsonConfig import JsonEditor, WindowConfig
@@ -25,62 +25,79 @@ class ServerThread(QThread):
 class MainWindow(QWidget):
 
     def __init__(self, cfg):
-
         super().__init__()
 
         self.setWindowTitle("PulseConnect OData (Community)")
-
-        self.layout = QVBoxLayout()
-
         self.cfg = cfg
 
-        #-- Menú principal - --
-        menubar = QMenuBar(self)
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
 
+        # ===== Menú =====
+        menubar = QMenuBar(self)
         self.layout.addWidget(menubar)
 
-        # Crear menús
         menu_options = menubar.addMenu("Options")
 
         accion_settings = QAction("Settings", self)
         menu_options.addAction(accion_settings)
-
         accion_settings.triggered.connect(self._open_dialog_settings)
 
         accion_exit = QAction("Exit", self)
         menu_options.addAction(accion_exit)
 
-        self.btn_start = QPushButton("Start")
-        self.btn_stop = QPushButton("Stop")
+        # ===== Título =====
+        title = QLabel("Conector OData")
+        title.setStyleSheet("font-size: 16px; font-weight: bold; margin: 4px;")
+        self.layout.addWidget(title)
 
-        # --- Combo de dialectos ---
-        self.db_label = QLabel("Tipo de Base de Datos:")
+        # ===== Línea de botones =====
+        btn_row = QHBoxLayout()
+
+        self.btn_start = QPushButton(" Start")
+        self.btn_start.setIcon(QIcon.fromTheme("media-playback-start"))
+        self.btn_start.setFixedWidth(120)
+
+        self.btn_stop = QPushButton(" Stop")
+        self.btn_stop.setIcon(QIcon.fromTheme("media-playback-stop"))
+        self.btn_stop.setFixedWidth(120)
+
+        btn_row.addWidget(self.btn_start)
+        btn_row.addWidget(self.btn_stop)
+        btn_row.addStretch()  # empuja a la izquierda
+
+        self.layout.addLayout(btn_row)
+
+        # ===== Combo de Base de Datos (alineado) =====
+        db_row = QHBoxLayout()
+
+        self.db_label = QLabel("Select database:")
         self.db_combo = QComboBox()
 
-        # Cargar dialectos desde el JSON
+        # cargar dialectos
         self.db_sections = self._get_db_sections(cfg)
         dialect_list = [sec["dialect"] for sec in self.db_sections]
-
         self.db_combo.addItems(dialect_list)
         self._set_initial_selection()
+        self.db_combo.setFixedWidth(160)
 
-        # Capturar cambios del usuario
-        self.db_combo.currentTextChanged.connect(self.on_db_change)
+        db_row.addWidget(self.db_label)
+        db_row.addWidget(self.db_combo)
+        db_row.addStretch()
 
+        self.layout.addLayout(db_row)
+
+        # ===== Terminal / Log (intocable) =====
         self.log = QTextEdit()
         self.log.setReadOnly(True)
-
-        self.layout.addWidget(QLabel("Conector OData"))
-        self.layout.addWidget(self.btn_start)
-        self.layout.addWidget(self.btn_stop)
-        self.layout.addWidget(self.db_combo)
-
         self.layout.addWidget(self.log)
-        self.setLayout(self.layout)
+
+        # Eventos
         self.server_thread = None
         self.tunnel = TunnelManager(self.cfg)
         self.btn_start.clicked.connect(self.start)
         self.btn_stop.clicked.connect(self.stop)
+
 
     def _open_dialog_settings(self):
 
@@ -115,7 +132,23 @@ class MainWindow(QWidget):
         self.append("Stop tunnel and server...")
         self.tunnel.stop()
         # detener Flask dev server no es trivial; en producción usa waitress/gunicorn como servicio
+
+        # Detener el Flask server
+        try:
+            self.send_shutdown_request(self.cfg)
+        except Exception:
+            pass
+
         self.append("Done.")
+
+    '''
+    def send_shutdown_request(cfg):
+        url = f"http://{cfg['server']['host']}:{cfg['server']['port']}/__shutdown__"
+        try:
+            requests.get(url, timeout=1)
+        except Exception:
+            pass  # Si ya está muerto, no pasa nada'''
+
 
     def edit_conf(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Open config.json", "", "JSON files (*.json)")
