@@ -1,30 +1,31 @@
 {
-  "ssh": {
-    "enabled": true,
-    "vps_host": "0.0.0.0",
-    "vps_user": "user",
-    "vps_pass": "root",
-    "remote_db_port": 3306,
-    "local_bind_port": 5001
-  },
-  "db_mysql": {
-    "dialect": "mysql",
-    "host": "127.0.0.1",
-    "port": 3306,
-    "user": "root",
-    "pass": "root",
-    "database": "northwind"
-  },
-  "db_postgres": {
-    "dialect": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432,
-    "user": "postgres",
-    "pass": "postgres",
-    "database": "postgres"
-  },
-  "server": {
-    "host": "127.0.0.1",
-    "port": 4545
-  }
+    "ssh": {
+        "enabled": true,
+        "vps_host": "0.0.0.0",
+        "vps_user": "user",
+        "vps_pass": "root",
+        "remote_db_port": 3306,
+        "local_bind_port": 5001
+    },
+    "db_mysql": {
+        "dialect": "mysql",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "root",
+        "pass": "root",
+        "database": "northwind"
+    },
+    "db_postgres": {
+        "dialect": "postgres",
+        "host": "127.0.0.1",
+        "port": 5432,
+        "user": "postgres",
+        "pass": "postgres",
+        "database": "postgres"
+    },
+    "server": {
+        "host": "127.0.0.1",
+        "port": 4545
+    },
+    "active_dialect": "mysql"
 }

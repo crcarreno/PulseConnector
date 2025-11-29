@@ -1,14 +1,18 @@
-# gui_main.py
-import sys, json
-from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, QMessageBox, QComboBox
+import json
+
+from PySide6.QtGui import QAction
+from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
+    QComboBox, QApplication, QDialog, QMenuBar, QMessageBox
 from PySide6.QtCore import QThread, Signal
 
-from gui_jsonConfig import JsonEditor
+from gui_jsonConfig import JsonEditor, WindowConfig
 from server import run_server
 from utils import TunnelManager
 import threading
 
+
 class ServerThread(QThread):
+
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
@@ -17,17 +21,34 @@ class ServerThread(QThread):
     def run(self):
         run_server(self.cfg)  # blocking call; Flask internal server runs
 
+
 class MainWindow(QWidget):
+
     def __init__(self, cfg):
+
         super().__init__()
-
-        self.cfg = cfg
-
-        self.editor = JsonEditor(cfg)
 
         self.setWindowTitle("PulseConnect OData (Community)")
 
         self.layout = QVBoxLayout()
+
+        self.cfg = cfg
+
+        #-- Menú principal - --
+        menubar = QMenuBar(self)
+
+        self.layout.addWidget(menubar)
+
+        # Crear menús
+        menu_options = menubar.addMenu("Options")
+
+        accion_settings = QAction("Settings", self)
+        menu_options.addAction(accion_settings)
+
+        accion_settings.triggered.connect(self._open_dialog_settings)
+
+        accion_exit = QAction("Exit", self)
+        menu_options.addAction(accion_exit)
 
         self.btn_start = QPushButton("Start")
         self.btn_stop = QPushButton("Stop")
@@ -35,7 +56,6 @@ class MainWindow(QWidget):
         # --- Combo de dialectos ---
         self.db_label = QLabel("Tipo de Base de Datos:")
         self.db_combo = QComboBox()
-        #self.btn_conf = QPushButton("Edit config")
 
         # Cargar dialectos desde el JSON
         self.db_sections = self._get_db_sections(cfg)
@@ -54,9 +74,6 @@ class MainWindow(QWidget):
         self.layout.addWidget(self.btn_start)
         self.layout.addWidget(self.btn_stop)
         self.layout.addWidget(self.db_combo)
-        #self.layout.addWidget(self.btn_conf)
-
-        self.layout.addWidget(self.editor)
 
         self.layout.addWidget(self.log)
         self.setLayout(self.layout)
@@ -64,19 +81,35 @@ class MainWindow(QWidget):
         self.tunnel = TunnelManager(self.cfg)
         self.btn_start.clicked.connect(self.start)
         self.btn_stop.clicked.connect(self.stop)
-        #self.btn_conf.clicked.connect(self.edit_conf)
 
+    def _open_dialog_settings(self):
+
+        if hasattr(self, "child") and self.child is not None:
+            if self.child.isVisible():
+                self.child.raise_()  # la trae adelante
+                self.child.activateWindow()
+                return
+
+        with open("config.json", encoding="utf-8") as f:
+            self.cfg = json.load(f)
+
+        self.child = WindowConfig(self, self.cfg)
+        self.child.show()
 
     def append(self, txt):
         self.log.append(txt)
 
     def start(self):
-        self.append("Init tunnel...")
-        self.tunnel.start()
-        self.append("Init web server...")
-        self.server_thread = threading.Thread(target=run_server, args=(self.cfg,), daemon=True)
-        self.server_thread.start()
-        self.append("Server init in http://{host}:{port}".format(**self.cfg["server"]))
+        try:
+            #self.append("Init tunnel...")
+            #self.tunnel.start()
+            self.append("Init web server...")
+            self.server_thread = threading.Thread(target=run_server, args=(self.cfg,), daemon=True)
+            self.server_thread.start()
+            self.append("Server init in http://{host}:{port}".format(**self.cfg["server"]))
+        except Exception as ex:
+            self._get_error(self, ex)
+
 
     def stop(self):
         self.append("Stop tunnel and server...")
@@ -133,6 +166,13 @@ class MainWindow(QWidget):
             if sec["dialect"] == dialect:
                 return sec
         return None
+
+    def _get_error(self, error_text):
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Critical)
+        box.setWindowTitle("Error")
+        box.setText(str(error_text))
+        box.exec()
 
 def run_gui(cfg):
     app = QApplication([])

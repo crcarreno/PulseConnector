@@ -3,20 +3,7 @@ from sqlalchemy import create_engine, MetaData, Table, select, text
 from sqlalchemy.sql import asc, desc
 from urllib.parse import quote_plus
 
-'''
-def build_connection_string(cfg):
-    d = cfg["db"]
-    dialect = d["dialect"]
-    if dialect == "mysql":
-        return f"mysql+pymysql://{d['user']}:{quote_plus(d['pass'])}@{d['host']}:{d['port']}/{d['database']}"
-    if dialect == "postgres":
-        return f"postgresql+psycopg2://{d['user']}:{quote_plus(d['pass'])}@{d['host']}:{d['port']}/{d['database']}"
-    if dialect == "mssql":
-        # require proper ODBC driver name; adjust as needed
-        odbc = quote_plus("Driver={ODBC Driver 18 for SQL Server};Server="+d['host']+","+str(d['port'])+";Database="+d['database']+";UID="+d['user']+";PWD="+d['pass']+";")
-        return f"mssql+pyodbc:///?odbc_connect={odbc}"
-    raise Exception("Dialect not supported")
-'''
+
 def build_connection_string(cfg):
     active = cfg.get("active_dialect")
     if not active:
@@ -60,22 +47,30 @@ def build_connection_string(cfg):
 
 class DB:
     def __init__(self, cfg):
-        self.conn_str = build_connection_string(cfg)
-        self.engine = create_engine(self.conn_str, pool_pre_ping=True)
-        self.meta = MetaData()
-        self.meta.reflect(bind=self.engine)
+
+        try:
+            self.conn_str = build_connection_string(cfg)
+            self.engine = create_engine(self.conn_str, pool_pre_ping=True)
+            self.meta = MetaData()
+            self.meta.reflect(bind=self.engine)
+        except Exception as e:
+            raise RuntimeError(f"Error : {e}")
+
 
     def get_table(self, table_name):
-        if table_name not in self.meta.tables:
-            # refrescar si no existe
-            self.meta.reflect(bind=self.engine, only=[table_name])
-        return Table(table_name, self.meta, autoload_with=self.engine)
+        try:
+            if table_name not in self.meta.tables:
+                # refrescar si no existe
+                self.meta.reflect(bind=self.engine, only=[table_name])
+            return Table(table_name, self.meta, autoload_with=self.engine)
+        except Exception as e:
+            raise RuntimeError(f"Error : {e}")
 
     def query_odata(self, table_name, params):
         try:
             table = self.get_table(table_name)
             q = select(table)
-            # $select
+
             if "$select" in params:
                 cols = [table.c[c] for c in params["$select"].split(",") if c in table.c]
                 if cols:
@@ -104,11 +99,12 @@ class DB:
                 q = q.limit(int(params["$top"]))
             return q
         except Exception as e:
-            return e
+            raise RuntimeError(f"Error : {e}")
 
     def _parse_filter(self, filter_str, table):
         # Parser muy simple — soporta "col eq value" y combinaciones con "and"
         from sqlalchemy import and_, or_
+
         ops = {
             "eq": lambda c, v: c == v,
             "ne": lambda c, v: c != v,
