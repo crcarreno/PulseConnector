@@ -1,9 +1,10 @@
 import json, requests
+from collections import deque
 
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QIcon, Qt
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
     QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
-from PySide6.QtCore import QThread, Signal
+from PySide6.QtCore import QThread, Signal, QObject
 
 from gui_jsonConfig import JsonEditor, WindowConfig
 from server import run_server
@@ -22,15 +23,28 @@ class ServerThread(QThread):
         run_server(self.cfg)  # blocking call; Flask internal server runs
 
 
+class LogBridge(QObject):
+    log = Signal(str)
+
 class MainWindow(QWidget):
 
     def __init__(self, cfg):
         super().__init__()
 
-        self.setWindowTitle("PulseConnect OData (Community)")
+        self.log_bridge = LogBridge()
+        self.log_bridge.log.connect(self.append)
+
+        self.log_buffer = deque(maxlen=5000)
+
+        self.setWindowTitle("PulseConnector (server)")
         self.cfg = cfg
 
+        # ===== Tamaño fijo =====
+        self.setFixedSize(600, 450)
+
         self.layout = QVBoxLayout()
+        self.layout.setContentsMargins(10, 10, 10, 10)
+        self.layout.setSpacing(8)
         self.setLayout(self.layout)
 
         # ===== Menú =====
@@ -47,11 +61,12 @@ class MainWindow(QWidget):
         menu_options.addAction(accion_exit)
 
         # ===== Título =====
-        title = QLabel("Conector OData")
+        title = QLabel("Active / deactive server")
+        title.setAlignment(Qt.AlignHCenter)
         title.setStyleSheet("font-size: 16px; font-weight: bold; margin: 4px;")
         self.layout.addWidget(title)
 
-        # ===== Línea de botones =====
+        # ===== Botones Start/Stop =====
         btn_row = QHBoxLayout()
 
         self.btn_start = QPushButton(" Start")
@@ -62,32 +77,35 @@ class MainWindow(QWidget):
         self.btn_stop.setIcon(QIcon.fromTheme("media-playback-stop"))
         self.btn_stop.setFixedWidth(120)
 
+        btn_row.addStretch()
         btn_row.addWidget(self.btn_start)
         btn_row.addWidget(self.btn_stop)
-        btn_row.addStretch()  # empuja a la izquierda
+        btn_row.addStretch()
 
         self.layout.addLayout(btn_row)
 
-        # ===== Combo de Base de Datos (alineado) =====
+        # ===== Selección de Base de Datos =====
         db_row = QHBoxLayout()
 
         self.db_label = QLabel("Select database:")
-        self.db_combo = QComboBox()
+        self.db_label.setFixedWidth(120)
 
-        # cargar dialectos
+        self.db_combo = QComboBox()
+        self.db_combo.setFixedWidth(160)
+
         self.db_sections = self._get_db_sections(cfg)
         dialect_list = [sec["dialect"] for sec in self.db_sections]
         self.db_combo.addItems(dialect_list)
         self._set_initial_selection()
-        self.db_combo.setFixedWidth(160)
 
+        db_row.addStretch()
         db_row.addWidget(self.db_label)
         db_row.addWidget(self.db_combo)
         db_row.addStretch()
 
         self.layout.addLayout(db_row)
 
-        # ===== Terminal / Log (intocable) =====
+        # ===== Terminal / Log =====
         self.log = QTextEdit()
         self.log.setReadOnly(True)
         self.layout.addWidget(self.log)
@@ -114,14 +132,21 @@ class MainWindow(QWidget):
         self.child.show()
 
     def append(self, txt):
-        self.log.append(txt)
+        self.log_buffer.append(txt)
+        self.log.setPlainText("\n".join(self.log_buffer))
+        self.log.verticalScrollBar().setValue(
+            self.log.verticalScrollBar().maximum()  # auto-scroll al final
+        )
 
     def start(self):
         try:
             #self.append("Init tunnel...")
             #self.tunnel.start()
             self.append("Init web server...")
-            self.server_thread = threading.Thread(target=run_server, args=(self.cfg,), daemon=True)
+            self.server_thread = threading.Thread(
+                target=run_server,
+                args=(self.cfg, self),
+                daemon=True)
             self.server_thread.start()
             self.append("Server init in http://{host}:{port}".format(**self.cfg["server"]))
         except Exception as ex:

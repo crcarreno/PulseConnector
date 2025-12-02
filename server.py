@@ -4,6 +4,26 @@ from db import DB
 
 app = Flask(__name__)
 db = None
+gui_logger = None
+
+@app.before_request
+def log_request():
+    global gui_logger
+    if gui_logger:
+        gui_logger.log_bridge.log.emit(
+            f"[REQ] {request.method} {request.path} {request.args.to_dict()}"
+        )
+
+def run_server(cfg, gui):
+    global db, gui_logger
+    db = DB(cfg)
+    gui_logger = gui
+
+    app.run(
+        host=cfg["server"]["host"],
+        port=cfg["server"]["port"],
+        threaded=True
+    )
 
 @app.route("/odata/<table_name>", methods=["GET"])
 def odata_table(table_name):
@@ -51,6 +71,7 @@ def odata_update(table_name, id):
 def status():
     return {"status": "ok"}
 
+'''
 def run_server(cfg):
     global db
     db = DB(cfg)
@@ -58,7 +79,7 @@ def run_server(cfg):
         host=cfg["server"]["host"],
         port=cfg["server"]["port"],
         threaded=True
-    )
+    )'''
 
 @app.route("/__shutdown__", methods=["GET"])
 def shutdown():
