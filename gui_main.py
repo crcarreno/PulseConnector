@@ -196,6 +196,7 @@ class MainWindow(QWidget):
     def _set_initial_selection(self):
         # Si ya existe un "active_dialect" almacenado
         active = self.cfg.get("active_dialect")
+
         if active:
             idx = self.db_combo.findText(active)
             if idx >= 0:

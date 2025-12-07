@@ -1,5 +1,5 @@
 # db.py
-from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update
+from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update, inspect
 from sqlalchemy.sql import asc, desc
 from urllib.parse import quote_plus
 
@@ -35,13 +35,19 @@ def build_connection_string(cfg):
         )
 
     if dialect == "mssql":
-        odbc = quote_plus(
-            "Driver={ODBC Driver 18 for SQL Server};"
-            f"Server={d['host']},{d['port']};"
-            f"Database={d['database']};"
-            f"UID={d['user']};PWD={d['pass']};"
+        user = quote_plus(d['user'])
+        pwd = quote_plus(d['pass'])
+        host = d['host']
+        port = d['port']
+        db = d['database']
+
+        driver = "ODBC Driver 18 for SQL Server"
+        driver_q = quote_plus(driver)
+
+        return (
+            f"mssql+pyodbc://{user}:{pwd}@{host}:{port}/{db}"
+            f"?driver={driver_q}&Encrypt=no&TrustServerCertificate=yes"
         )
-        return f"mssql+pyodbc:///?odbc_connect={odbc}"
 
     raise Exception(f"Dialect '{dialect}' not supported")
 
@@ -52,10 +58,69 @@ class DB:
         try:
             self.conn_str = build_connection_string(cfg)
             self.engine = create_engine(self.conn_str, pool_pre_ping=True)
+
+            #self.debug_reflect(self.engine)
+            #self.debug_foreign_keys(self.engine)
             self.meta = MetaData()
             self.meta.reflect(bind=self.engine)
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
+
+    def debug_foreign_keys(self, engine):
+        """
+        Inspecciona todas las tablas y detecta errores en Foreign Keys.
+        Útil para bases antiguas como Northwind donde algunos constraints
+        pueden tener nombres inválidos o campos inconsistentes.
+        """
+
+        inspector = inspect(engine)
+
+        print("\n====== Debug de Foreign Keys ======")
+
+        for table in inspector.get_table_names():
+            print(f"\n➡ Tabla: {table}")
+
+            try:
+                fks = inspector.get_foreign_keys(table)
+
+                if not fks:
+                    print("   ✔ Sin FKs – todo ok.")
+                    continue
+
+                for fk in fks:
+                    name = fk.get("name")
+                    referred = fk.get("referred_table")
+                    local_cols = fk.get("constrained_columns")
+                    remote_cols = fk.get("referred_columns")
+
+                    # Validación básica
+                    if not name or name.strip() == "":
+                        print(f"   ❌ FK con nombre vacío o inválido → {fk}")
+                    else:
+                        print(f"   ✔ FK: {name} → {referred} "
+                              f"{local_cols} -> {remote_cols}")
+
+            except Exception as e:
+                print(f"   ❌ Error al obtener FKs de la tabla: {e}")
+
+        print("\n====== Fin del debug de FKs ======\n")
+
+
+    def debug_reflect(self, engine):
+        '''
+        Esta función la uso para verificar si existen objetos de bases que no pueden ser leídos por el reflect
+        '''
+
+        inspector = inspect(engine)
+        meta = MetaData()
+
+        for table in inspector.get_table_names():
+            try:
+                print(f"→ Probando tabla: {table}")
+                meta.reflect(bind=engine, only=[table])
+                print(f"   OK: {table}")
+            except Exception as e:
+                print(f"   ❌ Error en {table}: {e}")
 
     def get_table(self, table_name):
         try:

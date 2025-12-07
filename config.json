@@ -23,10 +23,18 @@
         "pass": "postgres",
         "database": "postgres"
     },
+    "db_mssql": {
+        "dialect": "mssql",
+        "host": "127.0.0.1",
+        "port": "1433",
+        "user": "sa",
+        "pass": "admin.1234",
+        "database": "dbTest"
+    },
     "server": {
         "host": "127.0.0.1",
         "port": 4545,
         "protocol" : "http"
     },
-    "active_dialect": "mysql"
+    "active_dialect": "mssql"
 }
