@@ -94,9 +94,12 @@ class MainWindow(QWidget):
         self.db_combo.setFixedWidth(160)
 
         self.db_sections = self._get_db_sections(cfg)
+
         dialect_list = [sec["dialect"] for sec in self.db_sections]
+
         self.db_combo.addItems(dialect_list)
         self._set_initial_selection()
+        self.db_combo.currentTextChanged.connect(self._on_changed_dialect)
 
         db_row.addStretch()
         db_row.addWidget(self.db_label)
@@ -131,12 +134,14 @@ class MainWindow(QWidget):
         self.child = WindowConfig(self, self.cfg)
         self.child.show()
 
+
     def append(self, txt):
         self.log_buffer.append(txt)
         self.log.setPlainText("\n".join(self.log_buffer))
         self.log.verticalScrollBar().setValue(
             self.log.verticalScrollBar().maximum()  # auto-scroll al final
         )
+
 
     def start(self):
         try:
@@ -156,9 +161,8 @@ class MainWindow(QWidget):
     def stop(self):
         self.append("Stop tunnel and server...")
         self.tunnel.stop()
-        # detener Flask dev server no es trivial; en producción usa waitress/gunicorn como servicio
+        # Producción usa waitress/gunicorn como servicio
 
-        # Detener el Flask server
         try:
             self.send_shutdown_request(self.cfg)
         except Exception:
@@ -166,23 +170,13 @@ class MainWindow(QWidget):
 
         self.append("Done.")
 
-    '''
-    def send_shutdown_request(cfg):
-        url = f"http://{cfg['server']['host']}:{cfg['server']['port']}/__shutdown__"
-        try:
-            requests.get(url, timeout=1)
-        except Exception:
-            pass  # Si ya está muerto, no pasa nada'''
-
 
     def edit_conf(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Open config.json", "", "JSON files (*.json)")
         if fname:
             QMessageBox.information(self, "Info", f"Pulsaste abrir: {fname}\nEditar manualmente y reiniciar.")
 
-    # -----------------------------
-    # Encuentra secciones tipo db_xxx
-    # -----------------------------
+
     def _get_db_sections(self, cfg):
         sections = []
         for key, val in cfg.items():
@@ -190,11 +184,8 @@ class MainWindow(QWidget):
                 sections.append(val)
         return sections
 
-    # -----------------------------
-    # Seleccionar automáticamente el dialecto activo
-    # -----------------------------
+
     def _set_initial_selection(self):
-        # Si ya existe un "active_dialect" almacenado
         active = self.cfg.get("active_dialect")
 
         if active:
@@ -203,23 +194,18 @@ class MainWindow(QWidget):
                 self.db_combo.setCurrentIndex(idx)
                 return
 
-        # Si no hay activo, poner el primero
         self.cfg["active_dialect"] = self.db_combo.currentText()
 
-    # -----------------------------
-    # Cuando el usuario cambia la BD
-    # -----------------------------
-    def on_db_change(self, dialect):
-        print(f"Dialecto seleccionado: {dialect}")
+
+    def _on_changed_dialect(self, dialect):
+        filename = "config.json"
+
         self.cfg["active_dialect"] = dialect
 
-        # Si quieres, puedes obtener la sección completa:
-        selected_cfg = self._get_section_by_dialect(dialect)
-        print("Config de la DB seleccionada:", selected_cfg)
+        with open(filename, "w") as f:
+            json.dump(self.cfg, f, indent=4)
 
-    # -----------------------------
-    # Busca sección por dialecto
-    # -----------------------------
+
     def _get_section_by_dialect(self, dialect):
         for sec in self.db_sections:
             if sec["dialect"] == dialect:

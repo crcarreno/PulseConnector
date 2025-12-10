@@ -34,7 +34,7 @@
     "server": {
         "host": "127.0.0.1",
         "port": 4545,
-        "protocol" : "http"
+        "protocol": "http"
     },
-    "active_dialect": "mssql"
+    "active_dialect": "mysql"
 }

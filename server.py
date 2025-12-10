@@ -14,6 +14,7 @@ def log_request():
             f"[REQ] {request.method} {request.path} {request.args.to_dict()}"
         )
 
+
 def run_server(cfg, gui):
     global db, gui_logger
     db = DB(cfg)
@@ -24,6 +25,7 @@ def run_server(cfg, gui):
         port=cfg["server"]["port"],
         threaded=True
     )
+
 
 @app.route("/odata/<table_name>", methods=["GET"])
 def odata_table(table_name):
@@ -70,21 +72,3 @@ def odata_update(table_name, id):
 @app.route("/status")
 def status():
     return {"status": "ok"}
-
-'''
-def run_server(cfg):
-    global db
-    db = DB(cfg)
-    app.run(
-        host=cfg["server"]["host"],
-        port=cfg["server"]["port"],
-        threaded=True
-    )'''
-
-@app.route("/__shutdown__", methods=["GET"])
-def shutdown():
-    func = request.environ.get("werkzeug.server.shutdown")
-    if func is None:
-        return jsonify({"error": "No se puede apagar el servidor (no es Werkzeug)."}), 500
-    func()
-    return jsonify({"status": "ok", "msg": "Servidor apagándose..."})

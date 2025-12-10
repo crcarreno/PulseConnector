@@ -73,7 +73,6 @@ class JsonEditor(QWidget):
                 self._populate_tree(value, item)
 
             else:
-                # Nodo hoja → tiene key + value en una sola fila
                 item = QTreeWidgetItem([key, str(value)])
                 item.setFlags(item.flags() | Qt.ItemIsEditable)
 
@@ -98,6 +97,7 @@ class JsonEditor(QWidget):
             return key, obj
 
         result = {}
+
         for i in range(self.tree.topLevelItemCount()):
             k, v = read(self.tree.topLevelItem(i))
             result[k] = v
@@ -116,13 +116,11 @@ class JsonEditor(QWidget):
         if v.lower() == "true": return True
         if v.lower() == "false": return False
 
-        # Int
         try:
             return int(v)
         except:
             pass
 
-        # Float
         try:
             return float(v)
         except:

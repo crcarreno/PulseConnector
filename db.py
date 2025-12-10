@@ -5,7 +5,9 @@ from urllib.parse import quote_plus
 
 
 def build_connection_string(cfg):
+
     active = cfg.get("active_dialect")
+
     if not active:
         raise Exception("No active dialect selected")
 
@@ -66,6 +68,7 @@ class DB:
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
 
+
     def debug_foreign_keys(self, engine):
         """
         Inspecciona todas las tablas y detecta errores en Foreign Keys.
@@ -84,7 +87,7 @@ class DB:
                 fks = inspector.get_foreign_keys(table)
 
                 if not fks:
-                    print("   ✔ Sin FKs – todo ok.")
+                    print("Sin FKs – todo ok.")
                     continue
 
                 for fk in fks:
@@ -95,13 +98,13 @@ class DB:
 
                     # Validación básica
                     if not name or name.strip() == "":
-                        print(f"   ❌ FK con nombre vacío o inválido → {fk}")
+                        print(f"FK con nombre vacío o inválido → {fk}")
                     else:
-                        print(f"   ✔ FK: {name} → {referred} "
+                        print(f"FK: {name} → {referred} "
                               f"{local_cols} -> {remote_cols}")
 
             except Exception as e:
-                print(f"   ❌ Error al obtener FKs de la tabla: {e}")
+                print(f"Error al obtener FKs de la tabla: {e}")
 
         print("\n====== Fin del debug de FKs ======\n")
 
@@ -122,6 +125,7 @@ class DB:
             except Exception as e:
                 print(f"   ❌ Error en {table}: {e}")
 
+
     def get_table(self, table_name):
         try:
             if table_name not in self.meta.tables:
@@ -130,6 +134,7 @@ class DB:
             return Table(table_name, self.meta, autoload_with=self.engine)
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
+
 
     def query_odata(self, table_name, params):
         try:
@@ -165,6 +170,7 @@ class DB:
             return q
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
+
 
     def _parse_filter(self, filter_str, table):
         # Parser muy simple — soporta "col eq value" y combinaciones con "and"
