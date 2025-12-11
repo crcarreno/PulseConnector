@@ -1,8 +1,9 @@
 # db.py
 from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update, inspect
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import asc, desc
 from urllib.parse import quote_plus
-
+from typing import Dict, Any
 
 def build_connection_string(cfg):
 
@@ -11,7 +12,6 @@ def build_connection_string(cfg):
     if not active:
         raise Exception("No active dialect selected")
 
-    # Buscar la sección que coincida con ese dialecto
     db_section = None
     for key, val in cfg.items():
         if key.startswith("db_") and isinstance(val, dict) and val.get("dialect") == active:
@@ -53,12 +53,21 @@ def build_connection_string(cfg):
 
     raise Exception(f"Dialect '{dialect}' not supported")
 
+
 class DB:
 
     def __init__(self, cfg):
 
         try:
             self.conn_str = build_connection_string(cfg)
+
+            result = self.test_db_connection(self.conn_str)
+
+            if not result["ok"]:
+                raise RuntimeError(
+                    f"{result['message']}: {result['exception']}"
+                )
+
             self.engine = create_engine(self.conn_str, pool_pre_ping=True)
 
             #self.debug_reflect(self.engine)
@@ -69,7 +78,41 @@ class DB:
             raise RuntimeError(f"Error : {e}")
 
 
-    def debug_foreign_keys(self, engine):
+    def test_db_connection(self, conn_str: str) -> Dict[str, Any]:
+        """
+        Return:
+            {
+                "ok": True/False,
+                "message": str,
+                "exception": Exception | None
+            }
+        """
+        engine = None
+        try:
+            engine = create_engine(conn_str, pool_pre_ping=True)
+
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+
+            return {
+                "ok": True,
+                "message": "Success connection",
+                "exception": None
+            }
+
+        except SQLAlchemyError as e:
+            return {
+                "ok": False,
+                "message": "Connection error",
+                "exception": e
+            }
+
+        finally:
+            if engine:
+                engine.dispose()
+
+
+    def _debug_foreign_keys(self, engine):
         """
         Inspecciona todas las tablas y detecta errores en Foreign Keys.
         Útil para bases antiguas como Northwind donde algunos constraints
@@ -109,7 +152,7 @@ class DB:
         print("\n====== Fin del debug de FKs ======\n")
 
 
-    def debug_reflect(self, engine):
+    def _debug_reflect(self, engine):
         '''
         Esta función la uso para verificar si existen objetos de bases que no pueden ser leídos por el reflect
         '''
@@ -129,7 +172,6 @@ class DB:
     def get_table(self, table_name):
         try:
             if table_name not in self.meta.tables:
-                # refrescar si no existe
                 self.meta.reflect(bind=self.engine, only=[table_name])
             return Table(table_name, self.meta, autoload_with=self.engine)
         except Exception as e:
@@ -137,6 +179,7 @@ class DB:
 
 
     def query_odata(self, table_name, params):
+
         try:
             table = self.get_table(table_name)
             q = select(table)
@@ -173,8 +216,6 @@ class DB:
 
 
     def _parse_filter(self, filter_str, table):
-        # Parser muy simple — soporta "col eq value" y combinaciones con "and"
-        from sqlalchemy import and_, or_
 
         ops = {
             "eq": lambda c, v: c == v,
@@ -191,7 +232,6 @@ class DB:
         parts = [p.strip() for p in filter_str.split(" and ")]
 
         for p in parts:
-            # ejemplo: name eq 'juan'  -> split en 3
             toks = p.split(" ")
             if len(toks) < 3:
                 continue
@@ -221,12 +261,9 @@ class DB:
             return and_(*clauses)
         return None
 
-    # ---------- INSERTAR REGISTRO ----------
+
     def insert_odata(self, table_name, data: dict):
-        """
-        Inserta un registro en la tabla usando SQLAlchemy Core.
-        Retorna el ID insertado si lo hay.
-        """
+
         try:
             table = self.get_table(table_name)
             stmt = insert(table).values(**data)
@@ -244,12 +281,8 @@ class DB:
             raise RuntimeError(f"Insert error: {e}")
 
 
-    # ---------- ACTUALIZAR REGISTRO ----------
     def update_odata(self, table_name, key_column: str, key_value, data: dict):
-        """
-        Actualiza un registro según su llave primaria o columna clave.
-        Retorna cuántas filas se actualizaron.
-        """
+
         try:
             table = self.get_table(table_name)
 

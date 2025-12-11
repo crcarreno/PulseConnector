@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, Q
     QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
 from PySide6.QtCore import QThread, Signal, QObject
 
+from db import DB, build_connection_string
 from gui_jsonConfig import JsonEditor, WindowConfig
 from server import run_server
 from utils import TunnelManager
@@ -32,7 +33,7 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.log_bridge = LogBridge()
-        self.log_bridge.log.connect(self.append)
+        self.log_bridge.log.connect(self._append)
 
         self.log_buffer = deque(maxlen=5000)
 
@@ -77,6 +78,10 @@ class MainWindow(QWidget):
         self.btn_stop.setIcon(QIcon.fromTheme("media-playback-stop"))
         self.btn_stop.setFixedWidth(120)
 
+        self.btn_test = QPushButton(" Test")
+        self.btn_test.setIcon(QIcon.fromTheme("system-run"))
+        self.btn_test.setFixedWidth(120)
+
         btn_row.addStretch()
         btn_row.addWidget(self.btn_start)
         btn_row.addWidget(self.btn_stop)
@@ -84,7 +89,6 @@ class MainWindow(QWidget):
 
         self.layout.addLayout(btn_row)
 
-        # ===== Selección de Base de Datos =====
         db_row = QHBoxLayout()
 
         self.db_label = QLabel("Select database:")
@@ -104,6 +108,7 @@ class MainWindow(QWidget):
         db_row.addStretch()
         db_row.addWidget(self.db_label)
         db_row.addWidget(self.db_combo)
+        db_row.addWidget(self.btn_test)
         db_row.addStretch()
 
         self.layout.addLayout(db_row)
@@ -113,18 +118,18 @@ class MainWindow(QWidget):
         self.log.setReadOnly(True)
         self.layout.addWidget(self.log)
 
-        # Eventos
         self.server_thread = None
         self.tunnel = TunnelManager(self.cfg)
-        self.btn_start.clicked.connect(self.start)
-        self.btn_stop.clicked.connect(self.stop)
+        self.btn_start.clicked.connect(self._start)
+        self.btn_stop.clicked.connect(self._stop)
+        self.btn_test.clicked.connect(self._test)
 
 
     def _open_dialog_settings(self):
 
         if hasattr(self, "child") and self.child is not None:
             if self.child.isVisible():
-                self.child.raise_()  # la trae adelante
+                self.child.raise_()  # bring to front
                 self.child.activateWindow()
                 return
 
@@ -135,7 +140,7 @@ class MainWindow(QWidget):
         self.child.show()
 
 
-    def append(self, txt):
+    def _append(self, txt):
         self.log_buffer.append(txt)
         self.log.setPlainText("\n".join(self.log_buffer))
         self.log.verticalScrollBar().setValue(
@@ -143,38 +148,56 @@ class MainWindow(QWidget):
         )
 
 
-    def start(self):
+    def _start(self):
         try:
             #self.append("Init tunnel...")
             #self.tunnel.start()
-            self.append("Init web server...")
+            self._append("Init web server...")
             self.server_thread = threading.Thread(
                 target=run_server,
                 args=(self.cfg, self),
                 daemon=True)
             self.server_thread.start()
-            self.append("Server init in http://{host}:{port}".format(**self.cfg["server"]))
+            self._append("Server init in http://{host}:{port}".format(**self.cfg["server"]))
         except Exception as ex:
-            self._get_error(self, ex)
+            self._get_error(ex)
 
 
-    def stop(self):
-        self.append("Stop tunnel and server...")
+    def _test(self):
+        try:
+            db = DB(self.cfg)
+
+            self.conn_str = build_connection_string(self.cfg)
+
+            result = db.test_db_connection(self.conn_str)
+
+            if not result["ok"]:
+                raise RuntimeError(
+                    f"{result['message']}: {result['exception']}"
+                )
+
+            QMessageBox.information(self, "Info", f"Connect successful to {self.db_combo.currentText()}")
+
+        except Exception as ex:
+            self._get_error(ex)
+
+
+    def _stop(self):
+        self._append("Stop tunnel and server...")
         self.tunnel.stop()
-        # Producción usa waitress/gunicorn como servicio
 
         try:
             self.send_shutdown_request(self.cfg)
         except Exception:
             pass
 
-        self.append("Done.")
+        self._append("Done.")
 
 
     def edit_conf(self):
         fname, _ = QFileDialog.getOpenFileName(self, "Open config.json", "", "JSON files (*.json)")
         if fname:
-            QMessageBox.information(self, "Info", f"Pulsaste abrir: {fname}\nEditar manualmente y reiniciar.")
+            QMessageBox.information(self, "Info", f"Push open: {fname}\n Edit and restart.")
 
 
     def _get_db_sections(self, cfg):
