@@ -28,6 +28,13 @@ This project enables querying your local databases from a remote server securely
 
 ## New Features
 
+*December 13, 2025*
+- Waitress server implementation
+- Independent server thread
+- Thread control
+- High-demand feature configuration for threads
+- High-demand feature configuration for odata
+
 *November 29, 2025*
 - ODATA allows data entry via JSON
 - ODATA allows partial or complete updates of records via JSON.
@@ -217,4 +224,58 @@ http://localhost:4545/odata/customers?$select=id,company
 ![capture5.png](images/screenshots/capture5.png)
 
 
+# Server configuration
 
+## Normal
+
+```json
+{
+    "host": "0.0.0.0",
+    "port": 5000,
+    "threads": 8,
+    "connection_limit": 100,
+    "backlog": 512,
+    "channel_timeout": 60,
+    "cleanup_interval": 30
+}
+```
+
+## High
+
+```json
+{
+  "host": "0.0.0.0",
+  "port": 5000,
+  "threads": 32,
+  "connection_limit": 1000,
+  "backlog": 2048,
+  "channel_timeout": 120,
+  "cleanup_interval": 30
+}
+```
+
+## OData configuration
+
+## Normal
+
+```json
+    {
+      "pool_size":20,
+      "max_overflow":10,
+      "pool_timeout":10,
+      "pool_recycle":1800,
+      "pool_pre_ping":"True"
+    }
+```
+
+## High
+
+```json
+    {
+      "pool_size":50,
+      "max_overflow":100,
+      "pool_timeout":30,
+      "pool_recycle":1800,
+      "pool_pre_ping":"True"
+    }
+```

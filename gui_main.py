@@ -1,46 +1,36 @@
-import json, requests
+import json
 from collections import deque
 
 from PySide6.QtGui import QAction, QIcon, Qt
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
     QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
-from PySide6.QtCore import QThread, Signal, QObject
+from PySide6.QtCore import Signal, QObject
 
 from db import DB, build_connection_string
-from gui_jsonConfig import JsonEditor, WindowConfig
-from server import run_server
+from gui_jsonConfig import WindowConfig
+from server_controller import ServerController
 from utils import TunnelManager
-import threading
-
-
-class ServerThread(QThread):
-
-    def __init__(self, cfg):
-        super().__init__()
-        self.cfg = cfg
-        self._stopped = False
-
-    def run(self):
-        run_server(self.cfg)  # blocking call; Flask internal server runs
 
 
 class LogBridge(QObject):
     log = Signal(str)
+
 
 class MainWindow(QWidget):
 
     def __init__(self, cfg):
         super().__init__()
 
+        self.server = ServerController("threads/run_server.py")
+
         self.log_bridge = LogBridge()
-        self.log_bridge.log.connect(self._append)
+        self.log_bridge.log.connect(self.append)
 
         self.log_buffer = deque(maxlen=5000)
 
-        self.setWindowTitle("PulseConnector (server)")
+        self.setWindowTitle("PulseConnector")
         self.cfg = cfg
 
-        # ===== Tamaño fijo =====
         self.setFixedSize(600, 450)
 
         self.layout = QVBoxLayout()
@@ -48,7 +38,6 @@ class MainWindow(QWidget):
         self.layout.setSpacing(8)
         self.setLayout(self.layout)
 
-        # ===== Menú =====
         menubar = QMenuBar(self)
         self.layout.addWidget(menubar)
 
@@ -61,13 +50,11 @@ class MainWindow(QWidget):
         accion_exit = QAction("Exit", self)
         menu_options.addAction(accion_exit)
 
-        # ===== Título =====
-        title = QLabel("Active / deactive server")
-        title.setAlignment(Qt.AlignHCenter)
-        title.setStyleSheet("font-size: 16px; font-weight: bold; margin: 4px;")
-        self.layout.addWidget(title)
+        #title = QLabel("Active / deactive server")
+        #title.setAlignment(Qt.AlignHCenter)
+        #title.setStyleSheet("font-size: 16px; font-weight: bold; margin: 4px;")
+        #self.layout.addWidget(title)
 
-        # ===== Botones Start/Stop =====
         btn_row = QHBoxLayout()
 
         self.btn_start = QPushButton(" Start")
@@ -78,6 +65,10 @@ class MainWindow(QWidget):
         self.btn_stop.setIcon(QIcon.fromTheme("media-playback-stop"))
         self.btn_stop.setFixedWidth(120)
 
+        self.btn_restart = QPushButton(" Restart")
+        self.btn_restart.setIcon(QIcon.fromTheme("system-reboot"))
+        self.btn_restart.setFixedWidth(120)
+
         self.btn_test = QPushButton(" Test")
         self.btn_test.setIcon(QIcon.fromTheme("system-run"))
         self.btn_test.setFixedWidth(120)
@@ -85,6 +76,7 @@ class MainWindow(QWidget):
         btn_row.addStretch()
         btn_row.addWidget(self.btn_start)
         btn_row.addWidget(self.btn_stop)
+        btn_row.addWidget(self.btn_restart)
         btn_row.addStretch()
 
         self.layout.addLayout(btn_row)
@@ -120,8 +112,10 @@ class MainWindow(QWidget):
 
         self.server_thread = None
         self.tunnel = TunnelManager(self.cfg)
-        self.btn_start.clicked.connect(self._start)
-        self.btn_stop.clicked.connect(self._stop)
+
+        self.btn_start.clicked.connect(self.server.start)
+        self.btn_stop.clicked.connect(self.server.stop)
+        self.btn_restart.clicked.connect(self.server.restart)
         self.btn_test.clicked.connect(self._test)
 
 
@@ -140,27 +134,12 @@ class MainWindow(QWidget):
         self.child.show()
 
 
-    def _append(self, txt):
+    def append(self, txt):
         self.log_buffer.append(txt)
         self.log.setPlainText("\n".join(self.log_buffer))
         self.log.verticalScrollBar().setValue(
             self.log.verticalScrollBar().maximum()  # auto-scroll al final
         )
-
-
-    def _start(self):
-        try:
-            #self.append("Init tunnel...")
-            #self.tunnel.start()
-            self._append("Init web server...")
-            self.server_thread = threading.Thread(
-                target=run_server,
-                args=(self.cfg, self),
-                daemon=True)
-            self.server_thread.start()
-            self._append("Server init in http://{host}:{port}".format(**self.cfg["server"]))
-        except Exception as ex:
-            self._get_error(ex)
 
 
     def _test(self):
@@ -180,18 +159,6 @@ class MainWindow(QWidget):
 
         except Exception as ex:
             self._get_error(ex)
-
-
-    def _stop(self):
-        self._append("Stop tunnel and server...")
-        self.tunnel.stop()
-
-        try:
-            self.send_shutdown_request(self.cfg)
-        except Exception:
-            pass
-
-        self._append("Done.")
 
 
     def edit_conf(self):
@@ -229,18 +196,13 @@ class MainWindow(QWidget):
             json.dump(self.cfg, f, indent=4)
 
 
-    def _get_section_by_dialect(self, dialect):
-        for sec in self.db_sections:
-            if sec["dialect"] == dialect:
-                return sec
-        return None
-
     def _get_error(self, error_text):
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Critical)
         box.setWindowTitle("Error")
         box.setText(str(error_text))
         box.exec()
+
 
 def run_gui(cfg):
     app = QApplication([])

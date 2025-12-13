@@ -1,10 +1,18 @@
-# server.py
 from flask import Flask, request, jsonify, abort
 from db import DB
 
 app = Flask(__name__)
 db = None
 gui_logger = None
+
+
+def create_app(cfg, gui=None):
+    global db, gui_logger
+
+    db = DB(cfg)
+    gui_logger = gui
+    return app
+
 
 @app.before_request
 def log_request():
@@ -15,22 +23,11 @@ def log_request():
         )
 
 
-def run_server(cfg, gui):
-    global db, gui_logger
-    db = DB(cfg)
-    gui_logger = gui
-
-    app.run(
-        host=cfg["server"]["host"],
-        port=cfg["server"]["port"],
-        threaded=True
-    )
-
-
 @app.route("/odata/<table_name>", methods=["GET"])
 def odata_table(table_name):
+
     params = {}
-    # pasar solo parámetros OData ($select, $filter, $top, $skip, $orderby)
+
     for k in request.args:
         if k in ("$select", "$filter", "$top", "$skip", "$orderby"):
             params[k] = request.args.get(k)
@@ -47,7 +44,9 @@ def odata_table(table_name):
 
 @app.route("/odata/<table_name>", methods=["POST"])
 def odata_insert(table_name):
+
     body = request.json
+
     if not body:
         abort(400, "json body required")
 

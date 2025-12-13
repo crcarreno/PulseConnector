@@ -5,6 +5,7 @@ from sqlalchemy.sql import asc, desc
 from urllib.parse import quote_plus
 from typing import Dict, Any
 
+
 def build_connection_string(cfg):
 
     active = cfg.get("active_dialect")
@@ -60,6 +61,7 @@ class DB:
 
         try:
             self.conn_str = build_connection_string(cfg)
+            odata_cfg = cfg["odata"]
 
             result = self.test_db_connection(self.conn_str)
 
@@ -68,12 +70,20 @@ class DB:
                     f"{result['message']}: {result['exception']}"
                 )
 
-            self.engine = create_engine(self.conn_str, pool_pre_ping=True)
+            self.engine = create_engine(
+                self.conn_str,
+                pool_size=odata_cfg["pool_size"],
+                max_overflow=odata_cfg["max_overflow"],
+                pool_timeout=odata_cfg["pool_timeout"],
+                pool_recycle=odata_cfg["pool_recycle"],
+                pool_pre_ping=odata_cfg["pool_pre_ping"]
+            )
 
             #self.debug_reflect(self.engine)
             #self.debug_foreign_keys(self.engine)
             self.meta = MetaData()
             self.meta.reflect(bind=self.engine)
+
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
 
@@ -114,8 +124,8 @@ class DB:
 
     def _debug_foreign_keys(self, engine):
         """
-        Inspecciona todas las tablas y detecta errores en Foreign Keys.
-        Útil para bases antiguas como Northwind donde algunos constraints
+        Inspecciona todas las tablas y detecta errores en claves extranjeras.
+        Útil para bases antiguas como Northwind donde algunas restricciones
         pueden tener nombres inválidos o campos inconsistentes.
         """
 
@@ -124,13 +134,13 @@ class DB:
         print("\n====== Debug de Foreign Keys ======")
 
         for table in inspector.get_table_names():
-            print(f"\n➡ Tabla: {table}")
+            print(f"\nTable: {table}")
 
             try:
                 fks = inspector.get_foreign_keys(table)
 
                 if not fks:
-                    print("Sin FKs – todo ok.")
+                    print("Without FKs – all ok.")
                     continue
 
                 for fk in fks:
@@ -147,14 +157,12 @@ class DB:
                               f"{local_cols} -> {remote_cols}")
 
             except Exception as e:
-                print(f"Error al obtener FKs de la tabla: {e}")
-
-        print("\n====== Fin del debug de FKs ======\n")
+                print(f"Error return FKs of the table: {e}")
 
 
     def _debug_reflect(self, engine):
         '''
-        Esta función la uso para verificar si existen objetos de bases que no pueden ser leídos por el reflect
+        I use this function to check if there are database objects that cannot be read by reflect.
         '''
 
         inspector = inspect(engine)
@@ -162,11 +170,11 @@ class DB:
 
         for table in inspector.get_table_names():
             try:
-                print(f"→ Probando tabla: {table}")
+                print(f"Test table: {table}")
                 meta.reflect(bind=engine, only=[table])
-                print(f"   OK: {table}")
+                print(f"OK: {table}")
             except Exception as e:
-                print(f"   ❌ Error en {table}: {e}")
+                print(f"Error in {table}: {e}")
 
 
     def get_table(self, table_name):
