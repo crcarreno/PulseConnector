@@ -1,4 +1,4 @@
-# PulseConnector (Community)
+# PulseConnector
 
 ![PulseConnector USE](images/pulseconnector1.png)
 
@@ -10,6 +10,8 @@
 ## Website: https://pulseconnector.ecuarobot.com
 
 ## Features
+
+![capture2.png](images/screenshots/capture2.png)
 
 - Fast access to MSSQL, MySQL/MariaDB, PotgreSQL and other databases without writing additional code.
 
@@ -44,47 +46,58 @@ Example configuration file:
 
 ```json
 {
-  "ssh": {
-    "enabled": true,
-    "mode": "reverse",
-    "vps_host": "0.0.0.0",
-    "vps_user": "user",
-    "vps_pass": "root",
-    "remote_db_port": 3306,
-    "local_bind_port": 5001
-  },
-  "db_mysql": {
-    "dialect": "mysql",
-    "host": "127.0.0.1",
-    "port": 3306,
-    "user": "root",
-    "pass": "root",
-    "database": "northwind"
-  },
-  "db_postgres": {
-    "dialect": "postgres",
-    "host": "127.0.0.1",
-    "port": 5432,
-    "user": "postgres",
-    "pass": "postgres",
-    "database": "postgres"
-  },
-  "db_mssql": {
-    "dialect": "mssql",
-    "host": "127.0.0.1",
-    "port": 1433,
-    "user": "sa",
-    "pass": "password",
-    "database": "northwind"
-  }
+    "ssh": {
+        "enabled": true,
+        "vps_host": "0.0.0.0",
+        "vps_user": "user",
+        "vps_pass": "root",
+        "remote_db_port": 3306,
+        "local_bind_port": 5001
+    },
+    "db_mysql": {
+        "dialect": "mysql",
+        "host": "127.0.0.1",
+        "port": 3306,
+        "user": "root",
+        "pass": "root",
+        "database": "northwind"
+    },
+    "db_postgres": {
+        "dialect": "postgres",
+        "host": "127.0.0.1",
+        "port": 5432,
+        "user": "postgres",
+        "pass": "postgres",
+        "database": "postgres"
+    },
+    "db_mssql": {
+        "dialect": "mssql",
+        "host": "127.0.0.1",
+        "port": 1433,
+        "user": "sa",
+        "pass": "admin.1234",
+        "database": "dbTest"
+    },
+    "server": {
+        "host": "127.0.0.1",
+        "port": 5000,
+        "protocol": "http",
+        "threads": 8,
+        "connection_limit": 100,
+        "backlog": 512,
+        "channel_timeout": 60,
+        "cleanup_interval": 30
+    },
+    "odata": {
+        "pool_size": 20,
+        "max_overflow": 10,
+        "pool_timeout": 10,
+        "pool_recycle": 1800,
+        "pool_pre_ping": true
+    },
+    "active_dialect": "mssql"
 }
 ```
----
-# Deployment
-
-## Install dependencies
-
-
 ---
 
 ## Main Components
