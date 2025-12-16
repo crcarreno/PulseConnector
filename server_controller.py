@@ -1,14 +1,28 @@
-
+import json
 import subprocess
 import os
-from pathlib import Path
+import sys
 import psutil
+from pathlib import Path
+from PySide6.QtCore import QObject, Signal
+from threading import Thread
+
 
 PID_FILE = "pulseconnector.pid"
 
-class ServerController:
+
+with open("config.json") as f:
+    cfg = json.load(f)
+    server_cfg = cfg["server"]
+
+
+class ServerController(QObject):
+
+    log = Signal(str)
+
 
     def __init__(self, script_path):
+        super().__init__()
         self.script_path = Path(script_path)
         self.proc = None
 
@@ -16,21 +30,29 @@ class ServerController:
     def start(self):
 
         try:
+            port = server_cfg["port"]
 
-            self.ensure_clean_state()
+            self.log.emit("Verifying and closing orphaned processes…")
+
+            self.ensure_clean_state(port)
 
             self.proc = subprocess.Popen(
-                ["python", str(self.script_path)],
+                [sys.executable, str(self.script_path)],
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
             )
+
+            Thread(target=self._read_logs, daemon=True).start()
 
             with open(PID_FILE, "w") as f:
                 f.write(str(self.proc.pid))
 
-            print("Init server...")
+            self.log.emit(f"Server initialized in PID: {self.proc.pid}")
+            self.log.emit(f"Server initialized in: {server_cfg["protocol"]}//:{server_cfg["host"]}:{server_cfg["port"]}")
         except Exception as ex:
-            print(ex)
+            self.log.emit(f"Error: {ex}")
 
 
     def stop(self):
@@ -40,22 +62,23 @@ class ServerController:
             pid = int(open(PID_FILE).read())
             psutil.Process(pid).terminate()
             os.remove(PID_FILE)
-            print("Stop server...")
+            self.log.emit(f"Server stopped in PID: {self.proc.pid}")
 
 
     def restart(self):
 
-        print("Restart server...")
+        self.log.emit(f"Server restart")
         self.stop()
         self.start()
 
 
-    def ensure_clean_state(self):
+    def ensure_clean_state(self, port):
 
-        pid = self.find_server_pid_by_port(5000)
+        pid = self.find_server_pid_by_port(port)
 
         if pid:
-            print(f"Orphaned server detected (PID {pid}), cleaning...")
+            self.log.emit(f"Orphaned server detected (PID {pid}), cleaning...")
+
             p = psutil.Process(pid)
             p.terminate()
 
@@ -64,8 +87,6 @@ class ServerController:
             except psutil.TimeoutExpired:
                 p.kill()
 
-            print("Orphaned server delete")
-
 
     def find_server_pid_by_port(self, port):
 
@@ -73,3 +94,21 @@ class ServerController:
             if c.laddr and c.laddr.port == port and c.status == psutil.CONN_LISTEN:
                 return c.pid
         return None
+
+
+    def _read_logs(self):
+        for line in self.proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                data = json.loads(line)
+
+                if data.get("type") == "request":
+                    msg = f"[{data['method']}] {data['path']}"
+                    self.log.emit(msg)
+
+            except json.JSONDecodeError:
+                # Logs normales de waitress / prints
+                self.log.emit(line)

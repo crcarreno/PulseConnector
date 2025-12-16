@@ -4,16 +4,10 @@ from collections import deque
 from PySide6.QtGui import QAction, QIcon, Qt
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
     QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
-from PySide6.QtCore import Signal, QObject
-
 from db import DB, build_connection_string
 from gui_jsonConfig import WindowConfig
 from server_controller import ServerController
 from utils import TunnelManager
-
-
-class LogBridge(QObject):
-    log = Signal(str)
 
 
 class MainWindow(QWidget):
@@ -22,9 +16,7 @@ class MainWindow(QWidget):
         super().__init__()
 
         self.server = ServerController("threads/run_server.py")
-
-        self.log_bridge = LogBridge()
-        self.log_bridge.log.connect(self.append)
+        self.server.log.connect(self.append)
 
         self.log_buffer = deque(maxlen=5000)
 

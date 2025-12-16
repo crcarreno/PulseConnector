@@ -32,7 +32,7 @@
         "database": "dbTest"
     },
     "server": {
-        "host": "0.0.0.0",
+        "host": "127.0.0.1",
         "port": 5000,
         "protocol": "http",
         "threads": 8,
@@ -42,12 +42,11 @@
         "cleanup_interval": 30
     },
     "odata": {
-      "pool_size":20,
-      "max_overflow":10,
-      "pool_timeout":10,
-      "pool_recycle":1800,
-      "pool_pre_ping":true
+        "pool_size": 20,
+        "max_overflow": 10,
+        "pool_timeout": 10,
+        "pool_recycle": 1800,
+        "pool_pre_ping": true
     },
-
     "active_dialect": "mssql"
 }

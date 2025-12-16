@@ -18,6 +18,11 @@ sudo docker run -d \
 sudo docker ps -a
 ```
 
+## Start image
+```shell
+sudo docker start sql2022
+```
+
 ## Instalar ODBC Drivers for SQL Server in your ubuntu
 ```shell
 curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -

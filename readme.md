@@ -2,9 +2,8 @@
 
 ![PulseConnector USE](images/pulseconnector1.png)
 
-**PulseConnector** is a local database connector with a Python GUI that allows exposing your data via an OData service and connecting remotely from a VPS using SSH tunnels (forward and reverse).  
+**PulseConnector** PulseConnector is a lightweight Python database connector that transforms your data into a ready-to-use OData API in minutes.
 
-This project enables querying your local databases from a remote server securely, without opening public ports, with support for multiple database dialects (MySQL, PostgreSQL, SQL Server).
 
 ---
 
@@ -12,17 +11,15 @@ This project enables querying your local databases from a remote server securely
 
 ## Features
 
-- **GUI (PySide6)** for:
-  - Editing `config.json` visually in a key-value tree format.
-  - Selecting the active database dialect using a ComboBox.
-  - Viewing and dynamically updating connection parameters.
+- Fast access to MSSQL, MySQL/MariaDB, PotgreSQL and other databases without writing additional code.
 
-- **Local Python connector**:
-  - Supports **SSH forward and reverse tunnels**.
-  - Allows the VPS to query your **local OData service** through a reverse tunnel.
-  - Automatically builds the connection string based on the selected dialect.
+- Complete management from a modern GUI in PySide6.
 
-- **Embedded OData service** to expose local database data in a standard way.
+- Built-in SSH tunnels for secure connectivity to remote databases.
+
+- Lightweight backend with Waitress, compatible with Windows and Linux.
+
+- Ideal for developers and administrators who need to expose data securely and quickly.
 
 ---
 
@@ -87,29 +84,6 @@ Example configuration file:
 
 ## Install dependencies
 
-- pip install PySide6 sshtunnel sqlalchemy pymysql psycopg2 pyodbc
----
-
-## Run the GUI
-```
-from gui_main import run_gui  # your main.py with MainWindow
-import json
-
-with open("config.json") as f:
-    cfg = json.load(f)
-
-run_gui(cfg)
-```
----
-
-## In the GUI
-
-- Edit connection parameters visually.
-- Select the active database dialect in the ComboBox.
-- Start the SSH tunnel (forward or reverse, according to config).
-
-First view
-![PulseConnector USE](images/screenshots/capture2.png)
 
 ---
 
@@ -139,10 +113,10 @@ First view
 # Use
 
 ## Test server
-http://localhost:4545/status
+http://localhost:5000/status
 
 
-# Instructions
+# Instructions for making queries using ODATA
 
 ## Select
 
@@ -223,6 +197,7 @@ http://localhost:4545/odata/customers?$select=id,company
 
 ![capture5.png](images/screenshots/capture5.png)
 
+---
 
 # Server configuration
 
@@ -253,6 +228,8 @@ http://localhost:4545/odata/customers?$select=id,company
   "cleanup_interval": 30
 }
 ```
+
+---
 
 ## OData configuration
 

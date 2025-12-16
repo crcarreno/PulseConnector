@@ -1,26 +1,27 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, json
 from db import DB
 
 app = Flask(__name__)
 db = None
-gui_logger = None
 
 
-def create_app(cfg, gui=None):
-    global db, gui_logger
-
+def create_app(cfg):
+    global db
     db = DB(cfg)
-    gui_logger = gui
     return app
 
 
 @app.before_request
 def log_request():
-    global gui_logger
-    if gui_logger:
-        gui_logger.log_bridge.log.emit(
-            f"[REQ] {request.method} {request.path} {request.args.to_dict()}"
-        )
+    payload = {
+        "type": "request",
+        "method": request.method,
+        "path": request.path + str(request.args.to_dict(flat=True)),
+        "remote": request.remote_addr,
+        "args": request.args.to_dict()
+    }
+
+    print(json.dumps(payload), flush=True)
 
 
 @app.route("/odata/<table_name>", methods=["GET"])
