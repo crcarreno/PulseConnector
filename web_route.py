@@ -1,14 +1,26 @@
 from flask import Flask, request, jsonify, abort, json
 from db import DB
+from threads import server_state
+from threads.log_bridge import log_bridge
 
 app = Flask(__name__)
 db = None
 
 
-def create_app(cfg):
+def init_db(cfg):
     global db
     db = DB(cfg)
-    return app
+
+
+@app.before_request
+def guard():
+    # Permitimos siempre status
+    if request.path == "/status":
+        return
+
+    # Si el server está "stopped", negamos servicio
+    if not server_state.running:
+        abort(503, "Server stopped")
 
 
 @app.before_request
@@ -20,8 +32,7 @@ def log_request():
         "remote": request.remote_addr,
         "args": request.args.to_dict()
     }
-
-    print(json.dumps(payload), flush=True)
+    log_bridge.log.emit(json.dumps(payload))
 
 
 @app.route("/odata/<table_name>", methods=["GET"])

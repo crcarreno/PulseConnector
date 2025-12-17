@@ -1,11 +1,14 @@
 import json
-
+import os
+import sys
+'''
 from waitress import serve
+from utils import resource_path
 from web_route import create_app
 
 def main():
 
-    with open("config.json") as f:
+    with open(resource_path("config.json")) as f:
         cfg = json.load(f)
         server_cfg = cfg["server"]
 
@@ -25,3 +28,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+'''

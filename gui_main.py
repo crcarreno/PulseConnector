@@ -8,6 +8,7 @@ from db import DB, build_connection_string
 from gui_jsonConfig import WindowConfig
 from server_controller import ServerController
 from utils import TunnelManager
+from threads.log_bridge import log_bridge
 
 
 class MainWindow(QWidget):
@@ -15,8 +16,8 @@ class MainWindow(QWidget):
     def __init__(self, cfg):
         super().__init__()
 
-        self.server = ServerController("threads/run_server.py")
-        self.server.log.connect(self.append)
+        self.server = ServerController(cfg)
+        log_bridge.log.connect(self.append)
 
         self.log_buffer = deque(maxlen=5000)
 
@@ -41,11 +42,6 @@ class MainWindow(QWidget):
 
         accion_exit = QAction("Exit", self)
         menu_options.addAction(accion_exit)
-
-        #title = QLabel("Active / deactive server")
-        #title.setAlignment(Qt.AlignHCenter)
-        #title.setStyleSheet("font-size: 16px; font-weight: bold; margin: 4px;")
-        #self.layout.addWidget(title)
 
         btn_row = QHBoxLayout()
 
@@ -102,7 +98,6 @@ class MainWindow(QWidget):
         self.log.setReadOnly(True)
         self.layout.addWidget(self.log)
 
-        self.server_thread = None
         self.tunnel = TunnelManager(self.cfg)
 
         self.btn_start.clicked.connect(self.server.start)
