@@ -3,12 +3,12 @@ import threading
 from waitress import serve
 
 from threads import server_state
-from utils import resource_path
+from utils import CONFIG_PATH
 from web_route import app, init_db
 from threads.log_bridge import log_bridge
 
 
-with open(resource_path("config.json")) as f:
+with open(CONFIG_PATH) as f:
     cfg = json.load(f)
     server_cfg = cfg["server"]
 

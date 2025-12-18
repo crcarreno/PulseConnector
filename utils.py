@@ -3,8 +3,11 @@ import os
 import sys
 import threading
 import time
+from pathlib import Path
+
 from sshtunnel import SSHTunnelForwarder
 
+'''
 class TunnelManager:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -58,10 +61,14 @@ class TunnelManager:
         except:
             pass
         self.running = False
+'''
 
 
-def resource_path(rel):
+def get_base_path():
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    else:
+        return Path(__file__).resolve().parent
 
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, rel)
-    return os.path.join(os.path.abspath("."), rel)
+BASE_PATH = get_base_path()
+CONFIG_PATH = BASE_PATH / "config.json"

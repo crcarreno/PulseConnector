@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, Q
 from db import DB, build_connection_string
 from gui_jsonConfig import WindowConfig
 from server_controller import ServerController
-from utils import TunnelManager
+from utils import CONFIG_PATH
 from threads.log_bridge import log_bridge
 
 
@@ -98,7 +98,7 @@ class MainWindow(QWidget):
         self.log.setReadOnly(True)
         self.layout.addWidget(self.log)
 
-        self.tunnel = TunnelManager(self.cfg)
+        #self.tunnel = TunnelManager(self.cfg)
 
         self.btn_start.clicked.connect(self.server.start)
         self.btn_stop.clicked.connect(self.server.stop)
@@ -114,7 +114,7 @@ class MainWindow(QWidget):
                 self.child.activateWindow()
                 return
 
-        with open("config.json", encoding="utf-8") as f:
+        with open(CONFIG_PATH, encoding="utf-8") as f:
             self.cfg = json.load(f)
 
         self.child = WindowConfig(self, self.cfg)
@@ -175,11 +175,10 @@ class MainWindow(QWidget):
 
 
     def _on_changed_dialect(self, dialect):
-        filename = "config.json"
 
         self.cfg["active_dialect"] = dialect
 
-        with open(filename, "w") as f:
+        with open(CONFIG_PATH, "w") as f:
             json.dump(self.cfg, f, indent=4)
 
 

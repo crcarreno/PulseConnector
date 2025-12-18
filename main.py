@@ -2,10 +2,11 @@
 import json
 
 from gui_main import run_gui
-from utils import resource_path
+from utils import CONFIG_PATH
 
 if __name__ == "__main__":
 
-    with open(resource_path("config.json")) as f:
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         cfg = json.load(f)
+
     run_gui(cfg)

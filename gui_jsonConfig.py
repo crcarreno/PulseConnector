@@ -1,6 +1,9 @@
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import (QWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QDialog, QLabel, QPushButton)
 
+from utils import CONFIG_PATH
+
+
 class WindowConfig(QDialog):
 
     def __init__(self, parent, cfg):
@@ -25,8 +28,6 @@ class WindowConfig(QDialog):
 
 
 class JsonEditor(QWidget):
-
-    FILENAME = "config.json"
 
     def __init__(self, json_data: dict, parent=None):
 
@@ -53,7 +54,7 @@ class JsonEditor(QWidget):
 
     def _save_to_file(self):
         import json
-        with open(self.FILENAME, "w", encoding="utf-8") as f:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(self.json_data, f, indent=4, ensure_ascii=False)
 
 
