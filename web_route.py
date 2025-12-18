@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, abort, json
 from db import DB
 from threads import server_state
 from threads.log_bridge import log_bridge
+from utils import CONFIG_PATH
 
 app = Flask(__name__)
 db = None

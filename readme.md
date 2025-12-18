@@ -9,7 +9,7 @@
 
 ## Website: https://pulseconnector.ecuarobot.com
 
-## Features
+# Features
 
 ![capture2.png](images/screenshots/capture2.png)
 
@@ -25,7 +25,20 @@
 
 ---
 
-## New Features
+# Network architecture
+
+![arquitecture.png](images/architecture.png)
+
+---
+# New Features
+
+*December 18, 2025*
+- Integrated HTTPS Proxy for remote connections
+- Incorporate SSL / TLS Certificate
+
+*December 16, 2025*
+- Compatibility with linux/windows x64
+- Package installation with embed libraries
 
 *December 13, 2025*
 - Waitress server implementation
@@ -125,8 +138,12 @@ Example configuration file:
 ---
 # Use
 
-## Test server
-http://localhost:5000/status
+## Test local server
+
+- local: http://localhost:4545/status
+- remote: https://localhost:5000/status
+
+---
 
 
 # Instructions for making queries using ODATA
@@ -145,7 +162,7 @@ http://localhost:5000/status
 
 **Example:** 
 ```text
-http://localhost:4545/odata/customers?$select=id,company
+https://localhost:5000/odata/customers?$select=id,company
 ```
 ## $filters
 

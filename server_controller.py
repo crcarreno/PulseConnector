@@ -6,7 +6,7 @@ from threads import server_state
 from utils import CONFIG_PATH
 from web_route import app, init_db
 from threads.log_bridge import log_bridge
-
+from proxy import start_https_proxy
 
 with open(CONFIG_PATH) as f:
     cfg = json.load(f)
@@ -18,15 +18,15 @@ class ServerController:
     def __init__(self, cfg):
         self.cfg = cfg
         self.thread = None
-
+        self.proxy_thread = None
 
     def start(self):
         if self.thread and self.thread.is_alive():
             server_state.running = True
-            log_bridge.log.emit(f"Server initialized in: {server_cfg["protocol"]}//:{server_cfg["host"]}:{server_cfg["port"]}")
+            log_bridge.log.emit(f"Server initialized internal in: http//:{server_cfg["internal_host"]}:{server_cfg["internal_port"]}")
             return
 
-        log_bridge.log.emit(f"Server initialized in: {server_cfg["protocol"]}//:{server_cfg["host"]}:{server_cfg["port"]}")
+        log_bridge.log.emit(f"Server initialized internal in: http://{server_cfg["internal_host"]}:{server_cfg["internal_port"]}")
 
         init_db(self.cfg)
         server_state.running = True
@@ -38,13 +38,22 @@ class ServerController:
 
         self.thread.start()
 
+        log_bridge.log.emit(f"HTTPS proxy initialized external in: https://{server_cfg["public_host"]}:{server_cfg["public_port"]}")
+
+        self.proxy_thread = threading.Thread(
+            target=start_https_proxy,
+            args=(self.cfg["server"],),
+            daemon=True
+        )
+        self.proxy_thread.start()
+
 
     def _run_server(self):
 
         serve(
             app,
-            host=server_cfg["host"],
-            port=server_cfg["port"],
+            host=server_cfg["internal_host"],
+            port=server_cfg["internal_port"],
             threads=server_cfg["threads"],
             connection_limit=server_cfg["connection_limit"],  # max connections concurrent
             backlog=server_cfg["backlog"],  # socket queue

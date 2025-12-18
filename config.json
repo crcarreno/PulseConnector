@@ -32,14 +32,20 @@
         "database": "dbTest"
     },
     "server": {
-        "host": "127.0.0.1",
-        "port": 5000,
-        "protocol": "http",
+        "public_host": "0.0.0.0",
+        "public_port": 5000,
+
+        "internal_host": "127.0.0.1",
+        "internal_port": 4545,
+
         "threads": 8,
         "connection_limit": 100,
         "backlog": 512,
         "channel_timeout": 60,
-        "cleanup_interval": 30
+        "cleanup_interval": 30,
+
+        "cert": "certs/cert.pem",
+        "key": "certs/key.pem"
     },
     "odata": {
         "pool_size": 20,
