@@ -2,15 +2,71 @@ from flask import Flask, request, jsonify, abort, json
 from db import DB
 from threads import server_state
 from threads.log_bridge import log_bridge
-from utils import CONFIG_PATH
+from flask_httpauth import HTTPBasicAuth
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+from datetime import timedelta
 
 app = Flask(__name__)
 db = None
 
 
+basic_auth = HTTPBasicAuth()
+
+app.config["JWT_SECRET_KEY"] = "generate_your_secure_secret_key"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=60)
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)
+
+jwt = JWTManager(app)
+
+
 def init_db(cfg):
     global db
     db = DB(cfg)
+
+'''
+    BASIC AUTH
+'''
+USERS = {
+    "admin": "admin",
+    "service": "admin"
+}
+
+@basic_auth.verify_password
+def verify_basic(username, password):
+    return USERS.get(username) == password
+
+
+@app.route("/status")
+@basic_auth.login_required
+def health():
+    return {"status": "ok", "user": basic_auth.current_user()}
+
+'''
+    JWT AUTH
+'''
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.json.get("username")
+    password = request.json.get("password")
+
+    if not username or not password or USERS.get(username) != password:
+        return {"msg": "Invalid credentials"}, 401
+
+    access_token = create_access_token(
+        identity=username
+    )
+
+    return {
+        "access_token": access_token
+    }
+
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return jsonify({
+        "error": "token_expired",
+        "msg": "El token ha expirado"
+    }), 401
 
 
 @app.before_request
@@ -37,6 +93,7 @@ def log_request():
 
 
 @app.route("/odata/<table_name>", methods=["GET"])
+@jwt_required()
 def odata_table(table_name):
 
     params = {}
@@ -56,6 +113,7 @@ def odata_table(table_name):
 
 
 @app.route("/odata/<table_name>", methods=["POST"])
+@jwt_required()
 def odata_insert(table_name):
 
     body = request.json
@@ -68,6 +126,7 @@ def odata_insert(table_name):
 
 
 @app.route("/odata/<table_name>/<id>", methods=["PATCH", "PUT"])
+@jwt_required()
 def odata_update(table_name, id):
     '''
         PUT: Replace all
@@ -79,8 +138,3 @@ def odata_update(table_name, id):
 
     result = db.update_odata(table_name, "id", id, body)
     return jsonify(result)
-
-
-@app.route("/status")
-def status():
-    return {"status": "ok"}

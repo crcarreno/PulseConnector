@@ -25,12 +25,28 @@
 
 ---
 
+# General architecture
+
+![arquitecture.png](images/general_architecture.png)
+
+
+---
+
 # Network architecture
 
-![arquitecture.png](images/architecture.png)
+![arquitecture.png](images/network_architecture.png)
 
 ---
 # New Features
+
+*December 19, 2025*
+- Basic Authentication Support
+- Stateless API Architecture
+- JWT-Based Authentication (Bearer Tokens)
+- Token Expiration Handling
+- Secure Token Signing
+- Protected OData Endpoints
+- Centralized Request Logging
 
 *December 18, 2025*
 - Integrated HTTPS Proxy for remote connections
