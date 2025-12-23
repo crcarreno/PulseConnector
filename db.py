@@ -1,91 +1,135 @@
 # db.py
 from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update, inspect
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import asc, desc
-from urllib.parse import quote_plus
 from typing import Dict, Any
+from db_pool import MSSQLAdapter, MySQLAdapter, PostgresAdapter
 
 
-def build_connection_string(cfg):
-
-    active = cfg.get("active_dialect")
-
-    if not active:
-        raise Exception("No active dialect selected")
-
-    db_section = None
-    for key, val in cfg.items():
-        if key.startswith("db_") and isinstance(val, dict) and val.get("dialect") == active:
-            db_section = val
-            break
-
-    if not db_section:
-        raise Exception(f"No database config found for dialect '{active}'")
-
-    d = db_section
-    dialect = d["dialect"]
-
-    if dialect == "mysql":
-        return (
-            f"mysql+pymysql://{d['user']}:{quote_plus(d['pass'])}"
-            f"@{d['host']}:{d['port']}/{d['database']}"
-        )
-
-    if dialect == "postgres":
-        return (
-            f"postgresql+psycopg2://{d['user']}:{quote_plus(d['pass'])}"
-            f"@{d['host']}:{d['port']}/{d['database']}"
-        )
-
-    if dialect == "mssql":
-        user = quote_plus(d['user'])
-        pwd = quote_plus(d['pass'])
-        host = d['host']
-        port = d['port']
-        db = d['database']
-
-        driver = "ODBC Driver 18 for SQL Server"
-        driver_q = quote_plus(driver)
-
-        return (
-            f"mssql+pyodbc://{user}:{pwd}@{host}:{port}/{db}"
-            f"?driver={driver_q}&Encrypt=no&TrustServerCertificate=yes"
-        )
-
-    raise Exception(f"Dialect '{dialect}' not supported")
+class Meta:
+    def __init__(self):
+        self.tables = {}
 
 
 class DB:
 
     def __init__(self, cfg):
+        self.cfg = cfg  # 👈 FALTABA
+        self.meta = Meta()  # 👈 NO None
+
+        dialect = cfg["active_dialect"]
+        #self.meta = None
+
+        if dialect == "mssql":
+            self.adapter = MSSQLAdapter(cfg["db_mssql"])
+
+        elif dialect == "mysql":
+            self.adapter = MySQLAdapter(cfg["db_mysql"])
+
+        elif dialect == "postgres":
+            self.adapter = PostgresAdapter(cfg["db_postgres"])
+
+        else:
+            raise ValueError("Unsupported dialect")
+
+        self.load_metadata()
+
+
+    def load_metadata(self):
+        dialect = self.cfg["active_dialect"]
+        conn = self.adapter.acquire()
+        cur = None
 
         try:
-            self.conn_str = build_connection_string(cfg)
-            odata_cfg = cfg["odata"]
+            cur = conn.cursor()
 
-            result = self.test_db_connection(self.conn_str)
+            if dialect == "mssql":
+                cur.execute("""
+                            SELECT c.TABLE_NAME,
+                                   c.COLUMN_NAME,
+                                   c.DATA_TYPE,
+                                   c.IS_NULLABLE,
+                                   CASE WHEN k.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS IS_PK
+                            FROM INFORMATION_SCHEMA.COLUMNS c
+                                     LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+                                               ON c.TABLE_NAME = k.TABLE_NAME
+                                                   AND c.COLUMN_NAME = k.COLUMN_NAME
+                                                   AND OBJECTPROPERTY(
+                                                               OBJECT_ID(k.CONSTRAINT_SCHEMA + '.' + k.CONSTRAINT_NAME),
+                                                               'IsPrimaryKey'
+                                                       ) = 1
+                            ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION
+                            """)
 
-            if not result["ok"]:
-                raise RuntimeError(
-                    f"{result['message']}: {result['exception']}"
-                )
+            elif dialect == "mysql":
+                cur.execute("""
+                            SELECT c.TABLE_NAME,
+                                   c.COLUMN_NAME,
+                                   c.DATA_TYPE,
+                                   c.IS_NULLABLE,
+                                   CASE WHEN k.COLUMN_NAME IS NOT NULL THEN 1 ELSE 0 END AS IS_PK
+                            FROM INFORMATION_SCHEMA.COLUMNS c
+                                     LEFT JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE k
+                                               ON c.TABLE_SCHEMA = k.TABLE_SCHEMA
+                                                   AND c.TABLE_NAME = k.TABLE_NAME
+                                                   AND c.COLUMN_NAME = k.COLUMN_NAME
+                                                   AND k.CONSTRAINT_NAME = 'PRIMARY'
+                            WHERE c.TABLE_SCHEMA = DATABASE()
+                            ORDER BY c.TABLE_NAME, c.ORDINAL_POSITION
+                            """)
 
-            self.engine = create_engine(
-                self.conn_str,
-                pool_size=odata_cfg["pool_size"],
-                max_overflow=odata_cfg["max_overflow"],
-                pool_timeout=odata_cfg["pool_timeout"],
-                pool_recycle=odata_cfg["pool_recycle"],
-                pool_pre_ping=odata_cfg["pool_pre_ping"]
-            )
+            elif dialect == "postgres":
+                cur.execute("""
+                            SELECT c.table_name,
+                                   c.column_name,
+                                   c.data_type,
+                                   c.is_nullable,
+                                   CASE WHEN tc.constraint_type = 'PRIMARY KEY' THEN 1 ELSE 0 END AS is_pk
+                            FROM information_schema.columns c
+                                     LEFT JOIN information_schema.key_column_usage k
+                                               ON c.table_name = k.table_name
+                                                   AND c.column_name = k.column_name
+                                     LEFT JOIN information_schema.table_constraints tc
+                                               ON k.constraint_name = tc.constraint_name
+                            WHERE c.table_schema = 'public'
+                            ORDER BY c.table_name, c.ordinal_position
+                            """)
 
-            #self.debug_reflect(self.engine)
-            #self.debug_foreign_keys(self.engine)
-            self.meta = MetaData()
-            self.meta.reflect(bind=self.engine)
+            rows = cur.fetchall()
+            self.meta = self._build_meta(rows)
 
-        except Exception as e:
-            raise RuntimeError(f"Error : {e}")
+        finally:
+            if cur:
+                cur.close()
+            self.adapter.release(conn)
+
+
+    def _build_meta(self, rows):
+        meta = Meta()
+
+        for table, column, dtype, nullable, is_pk in rows:
+            if table not in meta.tables:
+                meta.tables[table] = {"columns": {}}
+
+            meta.tables[table]["columns"][column] = {
+                "type": dtype,
+                "nullable": nullable in ("YES", "yes", True, 1),
+                "pk": bool(is_pk)
+            }
+
+        return meta
+
+
+    def execute(self, sql, params=None):
+        conn = self.adapter.acquire()
+        cur = None
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, params or [])
+            return cur.fetchall()
+        finally:
+            if cur:
+                cur.close()
+            self.adapter.release(conn)
 
 
     def test_db_connection(self, conn_str: str) -> Dict[str, Any]:
@@ -161,9 +205,9 @@ class DB:
 
 
     def _debug_reflect(self, engine):
-        '''
-        I use this function to check if there are database objects that cannot be read by reflect.
-        '''
+        
+        #I use this function to check if there are database objects that cannot be read by reflect.
+        
 
         inspector = inspect(engine)
         meta = MetaData()
@@ -179,133 +223,156 @@ class DB:
 
     def get_table(self, table_name):
         try:
+            if not self.meta or not self.meta.tables:
+                raise RuntimeError("Database metadata not loaded")
+
             if table_name not in self.meta.tables:
-                self.meta.reflect(bind=self.engine, only=[table_name])
-            return Table(table_name, self.meta, autoload_with=self.engine)
+                raise RuntimeError(f"Table '{table_name}' not found in metadata")
+
+            return self.meta.tables[table_name]
+
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
-
 
     def query_odata(self, table_name, params):
+        table = self.get_table(table_name)
+        columns = table["columns"]
 
-        try:
-            table = self.get_table(table_name)
-            q = select(table)
+        # ----- SELECT -----
+        if "$select" in params:
+            requested = [c.strip() for c in params["$select"].split(",")]
+            valid = [c for c in requested if c in columns]
+            if not valid:
+                raise RuntimeError("No valid columns in $select")
+            select_clause = ", ".join(valid)
+        else:
+            select_clause = ", ".join(columns.keys())
 
-            if "$select" in params:
-                cols = [table.c[c] for c in params["$select"].split(",") if c in table.c]
-                if cols:
-                    q = select(*cols)
-            # $filter simple - solo soporte AND y operadores eq, gt, lt, like
-            if "$filter" in params:
-                # filtro muy básico: "col eq value and other gt 3"
-                expr = self._parse_filter(params["$filter"], table)
-                if expr is not None:
-                    q = q.where(expr)
-            # $orderby
-            if "$orderby" in params:
-                ob = params["$orderby"]
-                parts = [p.strip() for p in ob.split(",")]
-                for p in parts:
-                    if " " in p:
-                        col, direction = p.split()
-                    else:
-                        col, direction = p, "asc"
-                    if col in table.c:
-                        q = q.order_by(asc(table.c[col]) if direction.lower()=="asc" else desc(table.c[col]))
-            # $top / $skip
-            if "$skip" in params:
-                q = q.offset(int(params["$skip"]))
-            if "$top" in params:
-                q = q.limit(int(params["$top"]))
-            return q
-        except Exception as e:
-            raise RuntimeError(f"Error : {e}")
+        sql = f"SELECT {select_clause} FROM {table_name}"
+        sql_params = []
+
+        # ----- WHERE ($filter) -----
+        if "$filter" in params:
+            where_sql, where_params = self._parse_filter(params["$filter"], columns)
+            if where_sql:
+                sql += f" WHERE {where_sql}"
+                sql_params.extend(where_params)
+
+        # ----- ORDER BY -----
+        if "$orderby" in params:
+            order_parts = []
+            for part in params["$orderby"].split(","):
+                part = part.strip()
+                if " " in part:
+                    col, direction = part.split()
+                    direction = direction.upper()
+                else:
+                    col, direction = part, "ASC"
+
+                if col in columns and direction in ("ASC", "DESC"):
+                    order_parts.append(f"{col} {direction}")
+
+            if order_parts:
+                sql += " ORDER BY " + ", ".join(order_parts)
+
+        # ----- LIMIT / OFFSET -----
+        dialect = self.cfg["active_dialect"]
+
+        top = int(params.get("$top", 0)) if "$top" in params else None
+        skip = int(params.get("$skip", 0)) if "$skip" in params else None
+
+        if top is not None:
+            if dialect == "mssql":
+                sql += f" OFFSET {skip or 0} ROWS FETCH NEXT {top} ROWS ONLY"
+            else:
+                sql += f" LIMIT {top}"
+                if skip:
+                    sql += f" OFFSET {skip}"
+
+        rows = self.execute(sql, sql_params)
+        return {
+            "columns": select_clause.split(", "),
+            "rows": rows
+        }
 
 
-    def _parse_filter(self, filter_str, table):
-
+    def _parse_filter(self, filter_str, columns):
         ops = {
-            "eq": lambda c, v: c == v,
-            "ne": lambda c, v: c != v,
-            "gt": lambda c, v: c > v,
-            "lt": lambda c, v: c < v,
-            "ge": lambda c, v: c >= v,
-            "le": lambda c, v: c <= v,
-            "like": lambda c, v: c.like(v)
+            "eq": "=",
+            "ne": "!=",
+            "gt": ">",
+            "lt": "<",
+            "ge": ">=",
+            "le": "<=",
+            "like": "LIKE"
         }
 
         clauses = []
+        params = []
 
         parts = [p.strip() for p in filter_str.split(" and ")]
 
         for p in parts:
-            toks = p.split(" ")
-            if len(toks) < 3:
+            tokens = p.split(" ", 2)
+            if len(tokens) != 3:
                 continue
-            col = toks[0]
-            op = toks[1]
-            val = " ".join(toks[2:])
-            # limpiar comillas
-            if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
-                val = val[1:-1]
-            # convertir tipo si columna es numerica: intento simple
-            if col in table.c:
-                colobj = table.c[col]
-                # intento convertir a int/float si corresponde
-                try:
-                    if colobj.type.python_type in (int,):
-                        val_parsed = int(val)
-                    elif colobj.type.python_type in (float,):
-                        val_parsed = float(val)
-                    else:
-                        val_parsed = val
-                except Exception:
-                    val_parsed = val
-                if op in ops:
-                    clauses.append(ops[op](colobj, val_parsed))
-        if clauses:
-            from sqlalchemy import and_
-            return and_(*clauses)
-        return None
 
+            col, op, val = tokens
+            if col not in columns or op not in ops:
+                continue
+
+            # limpiar comillas
+            if (val.startswith("'") and val.endswith("'")) or \
+                    (val.startswith('"') and val.endswith('"')):
+                val = val[1:-1]
+
+            clauses.append(f"{col} {ops[op]} %s")
+            params.append(val)
+
+        return (" AND ".join(clauses), params) if clauses else (None, None)
 
     def insert_odata(self, table_name, data: dict):
+        table = self.get_table(table_name)
+        columns = table["columns"]
 
-        try:
-            table = self.get_table(table_name)
-            stmt = insert(table).values(**data)
+        valid = {k: v for k, v in data.items() if k in columns}
+        if not valid:
+            raise RuntimeError("No valid columns to insert")
 
-            with self.engine.begin() as conn:
-                result = conn.execute(stmt)
+        cols = ", ".join(valid.keys())
+        placeholders = ", ".join(["%s"] * len(valid))
 
-                # Si la tabla tiene PK autoincremental, devolverla
-                try:
-                    return {"inserted_id": result.inserted_primary_key[0]}
-                except:
-                    return {"status": "ok"}
+        sql = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
 
-        except Exception as e:
-            raise RuntimeError(f"Insert error: {e}")
+        self.execute(sql, list(valid.values()))
+        return {"status": "ok"}
 
 
     def update_odata(self, table_name, key_column: str, key_value, data: dict):
+        table = self.get_table(table_name)
+        columns = table["columns"]
 
-        try:
-            table = self.get_table(table_name)
+        if key_column not in columns:
+            raise RuntimeError(f"Key column '{key_column}' not found")
 
-            if key_column not in table.c:
-                raise Exception(f"Column '{key_column}' not found in table '{table_name}'")
+        updates = []
+        params = []
 
-            stmt = (
-                update(table)
-                .where(table.c[key_column] == key_value)
-                .values(**data)
-            )
+        for k, v in data.items():
+            if k in columns and k != key_column:
+                updates.append(f"{k} = %s")
+                params.append(v)
 
-            with self.engine.begin() as conn:
-                result = conn.execute(stmt)
-                return {"updated": result.rowcount}
+        if not updates:
+            raise RuntimeError("No valid columns to update")
 
-        except Exception as e:
-            raise RuntimeError(f"Update error: {e}")
+        sql = (
+            f"UPDATE {table_name} "
+            f"SET {', '.join(updates)} "
+            f"WHERE {key_column} = %s"
+        )
+
+        params.append(key_value)
+
+        self.execute(sql, params)
+        return {"status": "ok"}

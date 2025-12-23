@@ -5,16 +5,22 @@ from threads.log_bridge import log_bridge
 from flask_httpauth import HTTPBasicAuth
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from datetime import timedelta
+from utils import CONFIG_PATH
 
 app = Flask(__name__)
 db = None
 
-
 basic_auth = HTTPBasicAuth()
 
-app.config["JWT_SECRET_KEY"] = "generate_your_secure_secret_key"
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=60)
-app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)
+with open(CONFIG_PATH) as f:
+    cfg = json.load(f)
+    secure_cfg = cfg["security"]
+
+app.config["JWT_SECRET_KEY"] = secure_cfg["jwt_secret_key"]
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=secure_cfg["jwt_access_token_expires"])
+app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=secure_cfg["jwt_refresh_token_expires"])
+
+admin_user = secure_cfg["admin_user"]
 
 jwt = JWTManager(app)
 
@@ -26,14 +32,13 @@ def init_db(cfg):
 '''
     BASIC AUTH
 '''
-USERS = {
-    "admin": "admin",
-    "service": "admin"
-}
-
 @basic_auth.verify_password
 def verify_basic(username, password):
-    return USERS.get(username) == password
+
+    if username == admin_user:
+        return {"username": username, "status": "allow"}
+
+    return {"username": "No status", "status": "deny"}
 
 
 @app.route("/status")
@@ -49,7 +54,7 @@ def login():
     username = request.json.get("username")
     password = request.json.get("password")
 
-    if not username or not password or USERS.get(username) != password:
+    if not username or not password or admin_user != password:
         return {"msg": "Invalid credentials"}, 401
 
     access_token = create_access_token(
@@ -102,12 +107,19 @@ def odata_table(table_name):
         if k in ("$select", "$filter", "$top", "$skip", "$orderby"):
             params[k] = request.args.get(k)
     try:
-        query = db.query_odata(table_name, params)
-        conn = db.engine.connect()
-        result = conn.execute(query)
-        rows = [dict(r._mapping) for r in result.fetchall()]
-        conn.close()
-        return jsonify(rows)
+
+        result = db.query_odata(table_name, params)
+
+        columns = result["columns"]
+        rows = result["rows"]
+
+        data = [
+            dict(zip(columns, row))
+            for row in rows
+        ]
+
+        return jsonify(data)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
