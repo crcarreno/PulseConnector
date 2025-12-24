@@ -26,19 +26,23 @@ class ConnectionPool:
 class MSSQLAdapter:
 
     def __init__(self, cfg):
+
+        database = cfg["db_mssql"]
+        odata = cfg["odata"]
+
         conn_str = (
             f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-            f"SERVER={cfg['host']},{cfg['port']};"
-            f"DATABASE={cfg['database']};"
-            f"UID={cfg['user']};"
-            f"PWD={cfg['pass']};"
+            f"SERVER={database['host']},{database['port']};"
+            f"DATABASE={database['database']};"
+            f"UID={database['user']};"
+            f"PWD={database['pass']};"
             "Encrypt=no;"
             "TrustServerCertificate=yes;"
         )
 
         self.pool = ConnectionPool(
             lambda: pyodbc.connect(conn_str, autocommit=True),
-            size=cfg.get("pool_size", 10)
+            size=odata["pool_size"]
         )
 
     def acquire(self):
@@ -51,17 +55,20 @@ class MSSQLAdapter:
 class MySQLAdapter:
 
     def __init__(self, cfg):
+        database = cfg["db_mysql"]
+        odata = cfg["odata"]
+
         self.pool = ConnectionPool(
             lambda: pymysql.connect(
-                host=cfg["host"],
-                port=cfg["port"],
-                user=cfg["user"],
-                password=cfg["pass"],
-                database=cfg["database"],
+                host=database["host"],
+                port=database["port"],
+                user=database["user"],
+                password=database["pass"],
+                database=database["database"],
                 autocommit=True,
                 cursorclass=pymysql.cursors.DictCursor
             ),
-            size=cfg.get("pool_size", 10)
+            size=odata["pool_size"]
         )
 
     def acquire(self):
@@ -74,18 +81,22 @@ class MySQLAdapter:
 class PostgresAdapter:
 
     def __init__(self, cfg):
+        odata = cfg["odata"]
+
         self.pool = ConnectionPool(
             lambda: self._connect(cfg),
-            size=cfg.get("pool_size", 10)
+            size=odata["pool_size"]
         )
 
     def _connect(self, cfg):
+        database = cfg["db_postgres"]
+
         conn = psycopg2.connect(
-            host=cfg["host"],
-            port=cfg["port"],
-            user=cfg["user"],
-            password=cfg["pass"],
-            dbname=cfg["database"]
+            host=database["host"],
+            port=database["port"],
+            user=database["user"],
+            password=database["pass"],
+            dbname=database["database"]
         )
         conn.autocommit = True
         return conn

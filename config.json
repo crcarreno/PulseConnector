@@ -29,23 +29,18 @@
         "port": 1433,
         "user": "sa",
         "pass": "admin.1234",
-        "database": "dbTest"
+        "database": "northwind"
     },
     "server": {
         "public_host": "0.0.0.0",
         "public_port": 5000,
-
         "internal_host": "127.0.0.1",
         "internal_port": 4545,
-
-        "threads": 8,
+        "threads": 24,
         "connection_limit": 100,
         "backlog": 512,
         "channel_timeout": 60,
-        "cleanup_interval": 30,
-
-        "cert": "certs/cert.pem",
-        "key": "certs/key.pem"
+        "cleanup_interval": 30
     },
     "odata": {
         "pool_size": 20,
@@ -53,6 +48,14 @@
         "pool_timeout": 10,
         "pool_recycle": 1800,
         "pool_pre_ping": true
+    },
+    "security": {
+        "admin_user": "admin",
+        "cert": "certs/cert.pem",
+        "key": "certs/key.pem",
+        "jwt_secret_key": "generate_your_secure_secret_key",
+        "jwt_access_token_expires": 60,
+        "jwt_refresh_token_expires": 7
     },
     "active_dialect": "mssql"
 }

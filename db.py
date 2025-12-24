@@ -13,14 +13,13 @@ class Meta:
 class DB:
 
     def __init__(self, cfg):
-        self.cfg = cfg  # 👈 FALTABA
-        self.meta = Meta()  # 👈 NO None
+        self.cfg = cfg
+        self.meta = Meta()
 
         dialect = cfg["active_dialect"]
-        #self.meta = None
 
         if dialect == "mssql":
-            self.adapter = MSSQLAdapter(cfg["db_mssql"])
+            self.adapter = MSSQLAdapter(cfg)
 
         elif dialect == "mysql":
             self.adapter = MySQLAdapter(cfg["db_mysql"])
@@ -234,6 +233,7 @@ class DB:
         except Exception as e:
             raise RuntimeError(f"Error : {e}")
 
+
     def query_odata(self, table_name, params):
         table = self.get_table(table_name)
         columns = table["columns"]
@@ -283,6 +283,8 @@ class DB:
 
         if top is not None:
             if dialect == "mssql":
+                if "ORDER BY" not in sql.upper():
+                    sql += " ORDER BY (SELECT 1)"
                 sql += f" OFFSET {skip or 0} ROWS FETCH NEXT {top} ROWS ONLY"
             else:
                 sql += f" LIMIT {top}"
@@ -376,3 +378,20 @@ class DB:
 
         self.execute(sql, params)
         return {"status": "ok"}
+
+
+    def test_connection(self):
+        try:
+            with self.pool.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+
+            return {"ok": True}
+
+        except Exception as ex:
+            return {
+                "ok": False,
+                "message": "Database connection failed",
+                "exception": str(ex)
+            }
