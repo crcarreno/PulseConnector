@@ -23,6 +23,7 @@
 
 - Ideal for developers and administrators who need to expose data securely and quickly.
 
+[Benchmark](Docs/benchmark.md)
 ---
 
 # General architecture
