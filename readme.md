@@ -308,3 +308,10 @@ https://localhost:5000/odata/customers?$select=id,company
       "pool_pre_ping":"True"
     }
 ```
+
+
+# License
+
+This project is free for non-commercial use.
+
+Commercial use requires prior written authorization from the author.
