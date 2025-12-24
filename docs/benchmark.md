@@ -93,19 +93,19 @@ Common environment across all tests:
 
 
 ## Test 3
-![Test 3](images/screenshots/test/chart_test_1.png)
+![Test 3](../images/screenshots/test/chart_test_1.png)
 
 ## Test 4
-![Test 4](images/screenshots/test/chart_test_2.png)
+![Test 4](../images/screenshots/test/chart_test_2.png)
 
 ## Test 5
-![Test 5](images/screenshots/test/chart_test_3.png)
+![Test 5](../images/screenshots/test/chart_test_3.png)
 
 ## Test 6
-![Test 6](images/screenshots/test/chart_test_4.png)
+![Test 6](../images/screenshots/test/chart_test_4.png)
 
 ## Test 7
-![Test 7](images/screenshots/test/chart_test_5.png)
+![Test 7](../images/screenshots/test/chart_test_5.png)
 
 
 ## Correct interpretation of the table
