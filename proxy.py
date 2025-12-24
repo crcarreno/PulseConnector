@@ -9,6 +9,7 @@ from utils import CONFIG_PATH
 with open(CONFIG_PATH) as f:
     cfg = json.load(f)
     server_cfg = cfg["server"]
+    secure_cfg = cfg["security"]
 
 class ReverseProxyHandler(BaseHTTPRequestHandler):
 
@@ -53,8 +54,8 @@ def start_https_proxy(server_cfg):
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain(
-        certfile=server_cfg["cert"],
-        keyfile=server_cfg["key"]
+        certfile=secure_cfg["cert"],
+        keyfile=secure_cfg["key"]
     )
 
     httpd.socket = context.wrap_socket(httpd.socket, server_side=True)

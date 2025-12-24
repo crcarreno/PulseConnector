@@ -4,7 +4,6 @@ from collections import deque
 from PySide6.QtGui import QAction, QIcon, Qt
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
     QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
-from db import DB, build_connection_string
 from gui_jsonConfig import WindowConfig
 from server_controller import ServerController
 from utils import CONFIG_PATH
@@ -103,7 +102,7 @@ class MainWindow(QWidget):
         self.btn_start.clicked.connect(self.server.start)
         self.btn_stop.clicked.connect(self.server.stop)
         self.btn_restart.clicked.connect(self.server.restart)
-        self.btn_test.clicked.connect(self._test)
+        #self.btn_test.clicked.connect(self._test)
 
 
     def _open_dialog_settings(self):
@@ -127,25 +126,6 @@ class MainWindow(QWidget):
         self.log.verticalScrollBar().setValue(
             self.log.verticalScrollBar().maximum()  # auto-scroll al final
         )
-
-
-    def _test(self):
-        try:
-            db = DB(self.cfg)
-
-            self.conn_str = build_connection_string(self.cfg)
-
-            result = db.test_db_connection(self.conn_str)
-
-            if not result["ok"]:
-                raise RuntimeError(
-                    f"{result['message']}: {result['exception']}"
-                )
-
-            QMessageBox.information(self, "Info", f"Connect successful to {self.db_combo.currentText()}")
-
-        except Exception as ex:
-            self._get_error(ex)
 
 
     def edit_conf(self):
