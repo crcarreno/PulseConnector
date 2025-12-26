@@ -34,6 +34,7 @@ class DB:
 
 
     def load_metadata(self):
+
         dialect = self.cfg["active_dialect"]
         conn = self.adapter.acquire()
         cur = None
@@ -129,40 +130,6 @@ class DB:
             if cur:
                 cur.close()
             self.adapter.release(conn)
-
-
-    def test_db_connection(self, conn_str: str) -> Dict[str, Any]:
-        """
-        Return:
-            {
-                "ok": True/False,
-                "message": str,
-                "exception": Exception | None
-            }
-        """
-        engine = None
-        try:
-            engine = create_engine(conn_str, pool_pre_ping=True)
-
-            with engine.connect() as conn:
-                conn.execute(text("SELECT 1"))
-
-            return {
-                "ok": True,
-                "message": "Success connection",
-                "exception": None
-            }
-
-        except SQLAlchemyError as e:
-            return {
-                "ok": False,
-                "message": "Connection error",
-                "exception": e
-            }
-
-        finally:
-            if engine:
-                engine.dispose()
 
 
     def _debug_foreign_keys(self, engine):
@@ -333,6 +300,7 @@ class DB:
 
         return (" AND ".join(clauses), params) if clauses else (None, None)
 
+
     def insert_odata(self, table_name, data: dict):
         table = self.get_table(table_name)
         columns = table["columns"]
@@ -381,17 +349,18 @@ class DB:
 
 
     def test_connection(self):
+        conn = None
+        cur = None
         try:
-            with self.pool.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT 1")
-                cursor.fetchone()
-
+            conn = self.adapter.acquire()
+            cur = conn.cursor()
+            cur.execute("SELECT 1")
+            cur.fetchone()
             return {"ok": True}
-
         except Exception as ex:
-            return {
-                "ok": False,
-                "message": "Database connection failed",
-                "exception": str(ex)
-            }
+            return {"ok": False, "error": str(ex)}
+        finally:
+            if cur:
+                cur.close()
+            if conn:
+                self.adapter.release(conn)

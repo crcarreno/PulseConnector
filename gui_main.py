@@ -2,9 +2,14 @@ import json
 from collections import deque
 
 from PySide6.QtGui import QAction, QIcon, Qt
+
+from db import DB
+from gui_jsonConfig import WindowConfig
 from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
     QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
-from gui_jsonConfig import WindowConfig
+
+import db
+
 from server_controller import ServerController
 from utils import CONFIG_PATH
 from threads.log_bridge import log_bridge
@@ -102,7 +107,7 @@ class MainWindow(QWidget):
         self.btn_start.clicked.connect(self.server.start)
         self.btn_stop.clicked.connect(self.server.stop)
         self.btn_restart.clicked.connect(self.server.restart)
-        #self.btn_test.clicked.connect(self._test)
+        self.btn_test.clicked.connect(lambda: self.test_connection(cfg))
 
 
     def _open_dialog_settings(self):
@@ -162,12 +167,36 @@ class MainWindow(QWidget):
             json.dump(self.cfg, f, indent=4)
 
 
-    def _get_error(self, error_text):
+    def get_error(self, error_text):
         box = QMessageBox(self)
         box.setIcon(QMessageBox.Critical)
         box.setWindowTitle("Error")
         box.setText(str(error_text))
         box.exec()
+
+    def get_info(self, info_text):
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Information)
+        box.setWindowTitle("Mensaje")
+        box.setText(str(info_text))
+        box.exec()
+
+
+    def test_connection(self,cfg):
+
+        try:
+            db = DB(cfg)
+            result = db.test_connection()
+
+            if result["ok"]:
+                self.get_info("DB connection successful")
+                self.log.append("✅ DB connection successful")
+            else:
+                self.log.append(f"DB connect error: {result['error']}")
+
+        except Exception as ex:
+            self.get_error(f"DB connect error: {ex}")
+            self.log.append(f"DB connect error: {ex}")
 
 
 def run_gui(cfg):
