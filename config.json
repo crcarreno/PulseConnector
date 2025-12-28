@@ -51,8 +51,8 @@
     },
     "security": {
         "admin_user": "admin",
-        "cert": "certs/cert.pem",
-        "key": "certs/key.pem",
+        "cert": "/home/developer/.config/PulseConnector/certs/cert.pem",
+        "key": "/home/developer/.config/PulseConnector/certs/key.pem",
         "jwt_secret_key": "generate_your_secure_secret_key",
         "jwt_access_token_expires": 60,
         "jwt_refresh_token_expires": 7
