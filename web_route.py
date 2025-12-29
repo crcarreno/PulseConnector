@@ -6,6 +6,7 @@ from flask_httpauth import HTTPBasicAuth
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from datetime import timedelta
 from utils import CONFIG_PATH
+from version import __version__
 
 app = Flask(__name__)
 db = None
@@ -44,7 +45,7 @@ def verify_basic(username, password):
 @app.route("/status")
 @basic_auth.login_required
 def health():
-    return {"status": "ok", "user": basic_auth.current_user()}
+    return {"status": "ok", "version": __version__, "user": basic_auth.current_user()}
 
 '''
     JWT AUTH

@@ -22,10 +22,10 @@ class DB:
             self.adapter = MSSQLAdapter(cfg)
 
         elif dialect == "mysql":
-            self.adapter = MySQLAdapter(cfg["db_mysql"])
+            self.adapter = MySQLAdapter(cfg)
 
         elif dialect == "postgres":
-            self.adapter = PostgresAdapter(cfg["db_postgres"])
+            self.adapter = PostgresAdapter(cfg)
 
         else:
             raise ValueError("Unsupported dialect")

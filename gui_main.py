@@ -13,6 +13,7 @@ import db
 from server_controller import ServerController
 from utils import CONFIG_PATH
 from threads.log_bridge import log_bridge
+from version import __version__
 
 
 class MainWindow(QWidget):
@@ -25,7 +26,7 @@ class MainWindow(QWidget):
 
         self.log_buffer = deque(maxlen=5000)
 
-        self.setWindowTitle("PulseConnector")
+        self.setWindowTitle(f"PulseConnector v{__version__}")
         self.cfg = cfg
 
         self.setFixedSize(600, 450)
