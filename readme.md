@@ -2,7 +2,7 @@
 
 ![PulseConnector USE](images/pulseconnector1.png)
 
-**PulseConnector** PulseConnector is a lightweight Python database connector that transforms your data into a ready-to-use OData API in minutes.
+**PulseConnector** PulseConnector is a lightweight Python database connector that transforms your data into a ready-to-use OData API in minutes
 
 
 ---
