@@ -42,6 +42,11 @@ def verify_basic(username, password):
     return {"username": "No status", "status": "deny"}
 
 
+@app.route("/version")
+def get_version():
+    return {"version": __version__}
+
+
 @app.route("/status")
 @basic_auth.login_required
 def health():
@@ -77,8 +82,8 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 @app.before_request
 def guard():
-    # Permitimos siempre status
-    if request.path == "/status":
+    # Permitimos siempre status y version
+    if request.path in ("/status", "/version"):
         return
 
     # Si el server está "stopped", negamos servicio
