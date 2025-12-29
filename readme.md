@@ -171,7 +171,18 @@ Example configuration file:
 
 ---
 
+# Login and access
 
+https://localhost:5000/login
+
+## Generate token
+![PulseConnector USE](images/screenshots/capture6.png)
+
+## Use token bearer in query
+![PulseConnector USE](images/screenshots/capture7.png)
+
+
+---
 # Instructions for making queries using ODATA
 
 ## Select
