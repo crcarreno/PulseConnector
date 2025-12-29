@@ -2,6 +2,19 @@
 
 <!-- version list -->
 
+## v1.2.0 (2025-12-29)
+
+### Bug Fixes
+
+- Correct semantic-release config for version.py update
+  ([`3b2d598`](https://github.com/crcarreno/PulseConnector/commit/3b2d5982b51a9c07d4e7b71a7e4870c7d4eb3969))
+
+### Features
+
+- Correct semantic-release config and sync version
+  ([`b1d245a`](https://github.com/crcarreno/PulseConnector/commit/b1d245a20557487671a017681d87e73ee40b426a))
+
+
 ## v1.1.1 (2025-12-29)
 
 ### Bug Fixes
