@@ -178,6 +178,13 @@ https://localhost:5000/login
 ## Generate token
 ![PulseConnector USE](images/screenshots/capture6.png)
 
+```json
+{
+    "username":"admin",
+    "password":"admin"
+}
+```
+
 ## Use token bearer in query
 ![PulseConnector USE](images/screenshots/capture7.png)
 
