@@ -6,6 +6,8 @@ from flask_httpauth import HTTPBasicAuth
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from datetime import timedelta
 from utils import CONFIG_PATH
+#from views_engine.engine import ViewEngine
+#from views_engine.loader import FileViewLoader
 from version import __version__
 
 app = Flask(__name__)
@@ -26,9 +28,9 @@ admin_user = secure_cfg["admin_user"]
 jwt = JWTManager(app)
 
 
-def init_db(cfg):
+def init_db(cfg, analytics):
     global db
-    db = DB(cfg)
+    db = DB(cfg, analytics)
 
 '''
     BASIC AUTH
@@ -156,3 +158,16 @@ def odata_update(table_name, id):
 
     result = db.update_odata(table_name, "id", id, body)
     return jsonify(result)
+
+
+'''
+view_engine = ViewEngine(FileViewLoader("views/views.json"))
+view_engine.loader.load()
+
+@app.get("/views/<view_id>")
+@jwt_required()
+def execute_view(view_id):
+    return jsonify(
+        view_engine.execute(view_id, db, request.args)
+    )
+'''
