@@ -44,6 +44,15 @@
 ---
 # New Features
 
+*January 2, 2026*
+- System-Native Logging
+  - Linux: syslog / journald
+  - Windows: Event Viewer
+- Structured Error Tracking
+- Performance & Privacy First
+- Anonymous Usage Analytics
+- Self-Cleaning Telemetry State
+
 *December 22, 2025*
 - Replaced ORM-based persistence with a custom SQL-based Data Access Layer to improve concurrency and performance
 - Implemented native DB drivers with explicit pooling for high-load API scenarios
