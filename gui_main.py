@@ -18,10 +18,12 @@ from version import __version__
 
 class MainWindow(QWidget):
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, analytics):
         super().__init__()
 
-        self.server = ServerController(cfg)
+        self.analytics = analytics
+
+        self.server = ServerController(cfg, analytics)
         log_bridge.log.connect(self.append)
 
         self.log_buffer = deque(maxlen=5000)
@@ -186,7 +188,7 @@ class MainWindow(QWidget):
     def test_connection(self,cfg):
 
         try:
-            db = DB(cfg)
+            db = DB(cfg, self.analytics)
             result = db.test_connection()
 
             if result["ok"]:
@@ -200,9 +202,9 @@ class MainWindow(QWidget):
             self.log.append(f"DB connect error: {ex}")
 
 
-def run_gui(cfg):
+def run_gui(cfg, analytics):
     app = QApplication([])
-    win = MainWindow(cfg)
+    win = MainWindow(cfg, analytics)
     win.resize(600, 400)
     win.show()
     return app.exec_()

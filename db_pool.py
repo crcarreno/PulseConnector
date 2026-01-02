@@ -25,25 +25,36 @@ class ConnectionPool:
 
 class MSSQLAdapter:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, analytics):
 
-        database = cfg["db_mssql"]
-        odata = cfg["odata"]
+        try:
+            database = cfg["db_mssql"]
+            odata = cfg["odata"]
 
-        conn_str = (
-            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-            f"SERVER={database['host']},{database['port']};"
-            f"DATABASE={database['database']};"
-            f"UID={database['user']};"
-            f"PWD={database['pass']};"
-            "Encrypt=no;"
-            "TrustServerCertificate=yes;"
-        )
+            conn_str = (
+                f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                f"SERVER={database['host']},{database['port']};"
+                f"DATABASE={database['database']};"
+                f"UID={database['user']};"
+                f"PWD={database['pass']};"
+                "Encrypt=no;"
+                "TrustServerCertificate=yes;"
+            )
 
-        self.pool = ConnectionPool(
-            lambda: pyodbc.connect(conn_str, autocommit=True),
-            size=odata["pool_size"]
-        )
+            self.pool = ConnectionPool(
+                lambda: pyodbc.connect(conn_str, autocommit=True),
+                size=odata["pool_size"]
+            )
+        except Exception as e:
+            analytics.capture_error(
+                e,
+                component="MSSQLAdapter",
+                extra={
+                    "dialect": "mssql",
+                    "operation": "init connection",
+                }
+            )
+            raise e
 
     def acquire(self):
         return self.pool.acquire()
@@ -54,22 +65,35 @@ class MSSQLAdapter:
 
 class MySQLAdapter:
 
-    def __init__(self, cfg):
-        database = cfg["db_mysql"]
-        odata = cfg["odata"]
+    def __init__(self, cfg, analytics):
 
-        self.pool = ConnectionPool(
-            lambda: pymysql.connect(
-                host=database["host"],
-                port=database["port"],
-                user=database["user"],
-                password=database["pass"],
-                database=database["database"],
-                autocommit=True,
-                cursorclass=pymysql.cursors.DictCursor
-            ),
-            size=odata["pool_size"]
-        )
+        try:
+
+            database = cfg["db_mysql"]
+            odata = cfg["odata"]
+
+            self.pool = ConnectionPool(
+                lambda: pymysql.connect(
+                    host=database["host"],
+                    port=database["port"],
+                    user=database["user"],
+                    password=database["pass"],
+                    database=database["database"],
+                    autocommit=True,
+                    cursorclass=pymysql.cursors.DictCursor
+                ),
+                size=odata["pool_size"]
+            )
+        except Exception as e:
+            analytics.capture_error(
+                e,
+                component="MySQLAdapter",
+                extra={
+                    "dialect": "mysql",
+                    "operation": "init connection",
+                }
+            )
+            raise e
 
     def acquire(self):
         return self.pool.acquire()
@@ -80,26 +104,38 @@ class MySQLAdapter:
 
 class PostgresAdapter:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, analytics):
         odata = cfg["odata"]
 
         self.pool = ConnectionPool(
-            lambda: self._connect(cfg),
+            lambda: self._connect(cfg, analytics),
             size=odata["pool_size"]
         )
 
-    def _connect(self, cfg):
-        database = cfg["db_postgres"]
+    def _connect(self, cfg, analytics):
 
-        conn = psycopg2.connect(
-            host=database["host"],
-            port=database["port"],
-            user=database["user"],
-            password=database["pass"],
-            dbname=database["database"]
-        )
-        conn.autocommit = True
-        return conn
+        try:
+            database = cfg["db_postgres"]
+
+            conn = psycopg2.connect(
+                host=database["host"],
+                port=database["port"],
+                user=database["user"],
+                password=database["pass"],
+                dbname=database["database"]
+            )
+            conn.autocommit = True
+            return conn
+        except Exception as e:
+            analytics.capture_error(
+                e,
+                component="Postgres",
+                extra={
+                    "dialect": "postgres",
+                    "operation": "init connection",
+                }
+            )
+            raise e
 
     def acquire(self):
         return self.pool.acquire()

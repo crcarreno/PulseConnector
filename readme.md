@@ -337,3 +337,8 @@ https://localhost:5000/odata/customers?$select=id,company
 This project is free for non-commercial use.
 
 Commercial use requires prior written authorization from the author.
+
+---
+
+This application collects anonymous usage metrics to improve the product.
+No personal or customer data is collected.

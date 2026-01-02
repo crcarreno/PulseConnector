@@ -1,7 +1,6 @@
 import json
 import threading
 from waitress import serve
-
 from threads import server_state
 from utils import CONFIG_PATH
 from web_route import app, init_db
@@ -15,12 +14,17 @@ with open(CONFIG_PATH) as f:
 
 class ServerController:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, analytics):
+        self.analytics = analytics
         self.cfg = cfg
         self.thread = None
         self.proxy_thread = None
+        self.analytics = analytics
 
     def start(self):
+
+        self.analytics.capture("app_start_server")
+
         if self.thread and self.thread.is_alive():
             server_state.running = True
             log_bridge.log.emit(f"Server initialized internal in: http//:{server_cfg["internal_host"]}:{server_cfg["internal_port"]}")
@@ -28,7 +32,7 @@ class ServerController:
 
         log_bridge.log.emit(f"Server initialized internal in: http://{server_cfg["internal_host"]}:{server_cfg["internal_port"]}")
 
-        init_db(self.cfg)
+        init_db(self.cfg, self.analytics)
         server_state.running = True
 
         self.thread = threading.Thread(
@@ -64,11 +68,15 @@ class ServerController:
 
     def stop(self):
 
+        self.analytics.capture("app_stop_server")
+
         log_bridge.log.emit(f"Server stopped")
         server_state.running = False
 
 
     def restart(self):
+
+        self.analytics.capture("app_restart_server")
 
         log_bridge.log.emit(f"Server restart")
 

@@ -1,7 +1,5 @@
 # db.py
 from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update, inspect
-from sqlalchemy.exc import SQLAlchemyError
-from typing import Dict, Any
 from db_pool import MSSQLAdapter, MySQLAdapter, PostgresAdapter
 
 
@@ -12,20 +10,21 @@ class Meta:
 
 class DB:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, analytics):
         self.cfg = cfg
         self.meta = Meta()
+        self.analytics = analytics
 
         dialect = cfg["active_dialect"]
 
         if dialect == "mssql":
-            self.adapter = MSSQLAdapter(cfg)
+            self.adapter = MSSQLAdapter(cfg, analytics)
 
         elif dialect == "mysql":
-            self.adapter = MySQLAdapter(cfg)
+            self.adapter = MySQLAdapter(cfg, analytics)
 
         elif dialect == "postgres":
-            self.adapter = PostgresAdapter(cfg)
+            self.adapter = PostgresAdapter(cfg, analytics)
 
         else:
             raise ValueError("Unsupported dialect")
@@ -126,6 +125,15 @@ class DB:
             cur = conn.cursor()
             cur.execute(sql, params or [])
             return cur.fetchall()
+        except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "execute",
+                    "operation": "execute",
+                }
+            )
         finally:
             if cur:
                 cur.close()
@@ -198,155 +206,208 @@ class DB:
             return self.meta.tables[table_name]
 
         except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "get_table",
+                    "operation": "get_table",
+                }
+            )
             raise RuntimeError(f"Error : {e}")
 
 
     def query_odata(self, table_name, params):
-        table = self.get_table(table_name)
-        columns = table["columns"]
 
-        # ----- SELECT -----
-        if "$select" in params:
-            requested = [c.strip() for c in params["$select"].split(",")]
-            valid = [c for c in requested if c in columns]
-            if not valid:
-                raise RuntimeError("No valid columns in $select")
-            select_clause = ", ".join(valid)
-        else:
-            select_clause = ", ".join(columns.keys())
+        try:
+            table = self.get_table(table_name)
+            columns = table["columns"]
 
-        sql = f"SELECT {select_clause} FROM {table_name}"
-        sql_params = []
-
-        # ----- WHERE ($filter) -----
-        if "$filter" in params:
-            where_sql, where_params = self._parse_filter(params["$filter"], columns)
-            if where_sql:
-                sql += f" WHERE {where_sql}"
-                sql_params.extend(where_params)
-
-        # ----- ORDER BY -----
-        if "$orderby" in params:
-            order_parts = []
-            for part in params["$orderby"].split(","):
-                part = part.strip()
-                if " " in part:
-                    col, direction = part.split()
-                    direction = direction.upper()
-                else:
-                    col, direction = part, "ASC"
-
-                if col in columns and direction in ("ASC", "DESC"):
-                    order_parts.append(f"{col} {direction}")
-
-            if order_parts:
-                sql += " ORDER BY " + ", ".join(order_parts)
-
-        # ----- LIMIT / OFFSET -----
-        dialect = self.cfg["active_dialect"]
-
-        top = int(params.get("$top", 0)) if "$top" in params else None
-        skip = int(params.get("$skip", 0)) if "$skip" in params else None
-
-        if top is not None:
-            if dialect == "mssql":
-                if "ORDER BY" not in sql.upper():
-                    sql += " ORDER BY (SELECT 1)"
-                sql += f" OFFSET {skip or 0} ROWS FETCH NEXT {top} ROWS ONLY"
+            # ----- SELECT -----
+            if "$select" in params:
+                requested = [c.strip() for c in params["$select"].split(",")]
+                valid = [c for c in requested if c in columns]
+                if not valid:
+                    raise RuntimeError("No valid columns in $select")
+                select_clause = ", ".join(valid)
             else:
-                sql += f" LIMIT {top}"
-                if skip:
-                    sql += f" OFFSET {skip}"
+                select_clause = ", ".join(columns.keys())
 
-        rows = self.execute(sql, sql_params)
-        return {
-            "columns": select_clause.split(", "),
-            "rows": rows
-        }
+            sql = f"SELECT {select_clause} FROM {table_name}"
+            sql_params = []
+
+            # ----- WHERE ($filter) -----
+            if "$filter" in params:
+                where_sql, where_params = self._parse_filter(params["$filter"], columns)
+                if where_sql:
+                    sql += f" WHERE {where_sql}"
+                    sql_params.extend(where_params)
+
+            # ----- ORDER BY -----
+            if "$orderby" in params:
+                order_parts = []
+                for part in params["$orderby"].split(","):
+                    part = part.strip()
+                    if " " in part:
+                        col, direction = part.split()
+                        direction = direction.upper()
+                    else:
+                        col, direction = part, "ASC"
+
+                    if col in columns and direction in ("ASC", "DESC"):
+                        order_parts.append(f"{col} {direction}")
+
+                if order_parts:
+                    sql += " ORDER BY " + ", ".join(order_parts)
+
+            # ----- LIMIT / OFFSET -----
+            dialect = self.cfg["active_dialect"]
+
+            top = int(params.get("$top", 0)) if "$top" in params else None
+            skip = int(params.get("$skip", 0)) if "$skip" in params else None
+
+            if top is not None:
+                if dialect == "mssql":
+                    if "ORDER BY" not in sql.upper():
+                        sql += " ORDER BY (SELECT 1)"
+                    sql += f" OFFSET {skip or 0} ROWS FETCH NEXT {top} ROWS ONLY"
+                else:
+                    sql += f" LIMIT {top}"
+                    if skip:
+                        sql += f" OFFSET {skip}"
+
+            rows = self.execute(sql, sql_params)
+            return {
+                "columns": select_clause.split(", "),
+                "rows": rows
+            }
+        except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "query_odata",
+                    "operation": "query_odata",
+                }
+            )
+            raise RuntimeError(f"Error : {e}")
 
 
     def _parse_filter(self, filter_str, columns):
-        ops = {
-            "eq": "=",
-            "ne": "!=",
-            "gt": ">",
-            "lt": "<",
-            "ge": ">=",
-            "le": "<=",
-            "like": "LIKE"
-        }
 
-        clauses = []
-        params = []
+        try:
+            ops = {
+                "eq": "=",
+                "ne": "!=",
+                "gt": ">",
+                "lt": "<",
+                "ge": ">=",
+                "le": "<=",
+                "like": "LIKE"
+            }
 
-        parts = [p.strip() for p in filter_str.split(" and ")]
+            clauses = []
+            params = []
 
-        for p in parts:
-            tokens = p.split(" ", 2)
-            if len(tokens) != 3:
-                continue
+            parts = [p.strip() for p in filter_str.split(" and ")]
 
-            col, op, val = tokens
-            if col not in columns or op not in ops:
-                continue
+            for p in parts:
+                tokens = p.split(" ", 2)
+                if len(tokens) != 3:
+                    continue
 
-            # limpiar comillas
-            if (val.startswith("'") and val.endswith("'")) or \
-                    (val.startswith('"') and val.endswith('"')):
-                val = val[1:-1]
+                col, op, val = tokens
+                if col not in columns or op not in ops:
+                    continue
 
-            clauses.append(f"{col} {ops[op]} %s")
-            params.append(val)
+                # limpiar comillas
+                if (val.startswith("'") and val.endswith("'")) or \
+                        (val.startswith('"') and val.endswith('"')):
+                    val = val[1:-1]
 
-        return (" AND ".join(clauses), params) if clauses else (None, None)
+                clauses.append(f"{col} {ops[op]} %s")
+                params.append(val)
 
+            return (" AND ".join(clauses), params) if clauses else (None, None)
+        except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "_parse_filter",
+                    "operation": "_parse_filter",
+                }
+            )
+            raise RuntimeError(f"Error : {e}")
 
     def insert_odata(self, table_name, data: dict):
-        table = self.get_table(table_name)
-        columns = table["columns"]
+        try:
+            table = self.get_table(table_name)
+            columns = table["columns"]
 
-        valid = {k: v for k, v in data.items() if k in columns}
-        if not valid:
-            raise RuntimeError("No valid columns to insert")
+            valid = {k: v for k, v in data.items() if k in columns}
+            if not valid:
+                raise RuntimeError("No valid columns to insert")
 
-        cols = ", ".join(valid.keys())
-        placeholders = ", ".join(["%s"] * len(valid))
+            cols = ", ".join(valid.keys())
+            placeholders = ", ".join(["%s"] * len(valid))
 
-        sql = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
+            sql = f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
 
-        self.execute(sql, list(valid.values()))
-        return {"status": "ok"}
+            self.execute(sql, list(valid.values()))
+            return {"status": "ok"}
 
+        except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "insert_odata",
+                    "operation": "insert_odata",
+                }
+            )
+            raise RuntimeError(f"Error : {e}")
 
     def update_odata(self, table_name, key_column: str, key_value, data: dict):
-        table = self.get_table(table_name)
-        columns = table["columns"]
+        try:
+            table = self.get_table(table_name)
+            columns = table["columns"]
 
-        if key_column not in columns:
-            raise RuntimeError(f"Key column '{key_column}' not found")
+            if key_column not in columns:
+                raise RuntimeError(f"Key column '{key_column}' not found")
 
-        updates = []
-        params = []
+            updates = []
+            params = []
 
-        for k, v in data.items():
-            if k in columns and k != key_column:
-                updates.append(f"{k} = %s")
-                params.append(v)
+            for k, v in data.items():
+                if k in columns and k != key_column:
+                    updates.append(f"{k} = %s")
+                    params.append(v)
 
-        if not updates:
-            raise RuntimeError("No valid columns to update")
+            if not updates:
+                raise RuntimeError("No valid columns to update")
 
-        sql = (
-            f"UPDATE {table_name} "
-            f"SET {', '.join(updates)} "
-            f"WHERE {key_column} = %s"
-        )
+            sql = (
+                f"UPDATE {table_name} "
+                f"SET {', '.join(updates)} "
+                f"WHERE {key_column} = %s"
+            )
 
-        params.append(key_value)
+            params.append(key_value)
 
-        self.execute(sql, params)
-        return {"status": "ok"}
+            self.execute(sql, params)
+            return {"status": "ok"}
 
+        except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "update_odata",
+                    "operation": "update_odata",
+                }
+            )
+            raise RuntimeError(f"Error : {e}")
 
     def test_connection(self):
         conn = None
@@ -357,8 +418,16 @@ class DB:
             cur.execute("SELECT 1")
             cur.fetchone()
             return {"ok": True}
-        except Exception as ex:
-            return {"ok": False, "error": str(ex)}
+        except Exception as e:
+            self.analytics.capture_error(
+                e,
+                component="DB",
+                extra={
+                    "dialect": "test_connection",
+                    "operation": "test_connection",
+                }
+            )
+            return {"ok": False, "error": str(e)}
         finally:
             if cur:
                 cur.close()
