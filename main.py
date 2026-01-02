@@ -1,7 +1,7 @@
 # main.py
 import json
 
-from analytics import Analytics
+from analytics.analytics import Analytics
 from gui_main import run_gui
 from install import install_certs
 from utils import CONFIG_PATH
@@ -13,6 +13,7 @@ if __name__ == "__main__":
 
     analytics = Analytics()
     analytics.capture("app_start")
+    analytics.send_daily_usage()
 
     install = install_certs(cfg)
 

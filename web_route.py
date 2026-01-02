@@ -1,4 +1,6 @@
 from flask import Flask, request, jsonify, abort, json
+
+from analytics.usage_counter import increment_request
 from db import DB
 from threads import server_state
 from threads.log_bridge import log_bridge
@@ -120,6 +122,10 @@ def odata_table(table_name):
 
         columns = result["columns"]
         rows = result["rows"]
+        row_count = len(rows) if rows else 0
+
+        kind = "light" if row_count < 101 else "heavy"
+        increment_request(kind=kind, success=True)
 
         data = [
             dict(zip(columns, row))
@@ -129,6 +135,7 @@ def odata_table(table_name):
         return jsonify(data)
 
     except Exception as e:
+        increment_request(kind="light", success=False)
         return jsonify({"error": str(e)}), 500
 
 

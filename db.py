@@ -1,5 +1,5 @@
 # db.py
-from sqlalchemy import create_engine, MetaData, Table, select, text, insert, update, inspect
+from sqlalchemy import MetaData, inspect
 from db_pool import MSSQLAdapter, MySQLAdapter, PostgresAdapter
 
 
@@ -119,8 +119,10 @@ class DB:
 
 
     def execute(self, sql, params=None):
+
         conn = self.adapter.acquire()
         cur = None
+
         try:
             cur = conn.cursor()
             cur.execute(sql, params or [])
@@ -181,8 +183,6 @@ class DB:
     def _debug_reflect(self, engine):
         
         #I use this function to check if there are database objects that cannot be read by reflect.
-        
-
         inspector = inspect(engine)
         meta = MetaData()
 

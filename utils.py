@@ -63,7 +63,6 @@ class TunnelManager:
         self.running = False
 '''
 
-
 def get_base_path():
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
