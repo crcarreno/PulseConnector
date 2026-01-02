@@ -12,8 +12,6 @@ pyinstaller  main.py \
 ## Test windows 10
 ```shell
 
-https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe
-
 git clone https://github.com/crcarreno/PulseConnector.git
 cd PulseConnector
 
