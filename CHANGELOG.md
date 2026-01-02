@@ -2,6 +2,18 @@
 
 <!-- version list -->
 
+## v1.2.1 (2026-01-02)
+
+*January 2, 2026*
+- System-Native Logging
+  - Linux: syslog / journald
+  - Windows: Event Viewer
+- Structured Error Tracking
+- Performance & Privacy First
+- Anonymous Usage Analytics
+  - Self-Cleaning Telemetry State
+([`25c1a42`](https://github.com/crcarreno/PulseConnector/commit/50e0eebd1062ac8bdf7f503c9bca697436b8c549))
+
 ## v1.2.0 (2025-12-29)
 
 ### Bug Fixes
