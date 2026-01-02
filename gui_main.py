@@ -1,19 +1,17 @@
 import json
 from collections import deque
-
 from PySide6.QtGui import QAction, QIcon, Qt
-
 from db import DB
 from gui_jsonConfig import WindowConfig
-from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
-    QComboBox, QApplication, QDialog, QMenuBar, QMessageBox, QHBoxLayout
-
-import db
-
+from PySide6.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QFileDialog, \
+    QComboBox, QApplication, QMenuBar, QMessageBox, QHBoxLayout
 from server_controller import ServerController
 from utils import CONFIG_PATH
 from threads.log_bridge import log_bridge
 from version import __version__
+from analytics.logger import setup_logger
+
+log = setup_logger()
 
 
 class MainWindow(QWidget):
@@ -194,12 +192,15 @@ class MainWindow(QWidget):
             if result["ok"]:
                 self.get_info("DB connection successful")
                 self.log.append("✅ DB connection successful")
+                log.info("DB connection successful")
             else:
+                log.error(f"DB connect error: {result['error']}")
                 self.log.append(f"DB connect error: {result['error']}")
 
-        except Exception as ex:
-            self.get_error(f"DB connect error: {ex}")
-            self.log.append(f"DB connect error: {ex}")
+        except Exception as e:
+            log.error("Error: {}".format(e))
+            self.get_error(f"DB connect error: {e}")
+            self.log.append(f"DB connect error: {e}")
 
 
 def run_gui(cfg, analytics):

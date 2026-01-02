@@ -1,5 +1,4 @@
 import subprocess
-from pathlib import Path
 from cryptography import x509
 from datetime import datetime
 from pathlib import Path

@@ -1,9 +1,11 @@
 import pyodbc
 import pymysql
 import psycopg2
-
-
 from queue import Queue, Empty
+from analytics.logger import setup_logger
+
+log = setup_logger()
+
 
 class ConnectionPool:
 
@@ -16,6 +18,7 @@ class ConnectionPool:
         try:
             return self.pool.get(timeout=timeout)
         except Empty:
+            log.error("Timeout while acquiring connection")
             raise Exception("DB connection pool exhausted")
 
     def release(self, conn):
@@ -45,7 +48,9 @@ class MSSQLAdapter:
                 lambda: pyodbc.connect(conn_str, autocommit=True),
                 size=odata["pool_size"]
             )
+
         except Exception as e:
+            log.error("Error: {}".format(e))
             analytics.capture_error(
                 e,
                 component="MSSQLAdapter",
@@ -85,6 +90,7 @@ class MySQLAdapter:
                 size=odata["pool_size"]
             )
         except Exception as e:
+            log.error("Error: {}".format(e))
             analytics.capture_error(
                 e,
                 component="MySQLAdapter",
@@ -127,6 +133,7 @@ class PostgresAdapter:
             conn.autocommit = True
             return conn
         except Exception as e:
+            log.error("Error: {}".format(e))
             analytics.capture_error(
                 e,
                 component="Postgres",

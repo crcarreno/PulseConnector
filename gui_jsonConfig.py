@@ -1,6 +1,6 @@
+import json
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import (QWidget, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QDialog, QLabel, QPushButton)
-
 from utils import CONFIG_PATH
 
 
@@ -53,7 +53,7 @@ class JsonEditor(QWidget):
 
 
     def _save_to_file(self):
-        import json
+
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             json.dump(self.json_data, f, indent=4, ensure_ascii=False)
 
@@ -84,6 +84,7 @@ class JsonEditor(QWidget):
 
 
     def get_json(self):
+
         def read(item):
             key = item.text(0)
             child_count = item.childCount()
@@ -107,11 +108,13 @@ class JsonEditor(QWidget):
 
 
     def _on_item_changed(self, item, column):
+
         self.json_data = self.get_json()
         self._save_to_file()
 
 
     def _convert_value(self, v: str):
+
         v = v.strip()
 
         if v.lower() == "true": return True
@@ -127,5 +130,4 @@ class JsonEditor(QWidget):
         except:
             pass
 
-        # String
         return v

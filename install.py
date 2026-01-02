@@ -3,8 +3,11 @@ import os
 import sys
 from pathlib import Path
 from utils import CONFIG_PATH
-
 from certs.admin_certs import generate_ca, generate_server_cert, save_pem
+from analytics.logger import setup_logger
+
+log = setup_logger()
+
 
 NAME_APP = "PulseConnector"
 
@@ -26,6 +29,7 @@ def install_certs(cfg):
             create_cert_dir(path)
             create_certs(path)
             save_config(cfg)
+            log.info("Certs generated successfully")
 
             return 1
 
@@ -38,12 +42,13 @@ def install_certs(cfg):
             create_cert_dir(path)
             create_certs(path)
             save_config(cfg)
+            log.info("Certs generated successfully")
 
             return 1
 
-    except Exception as ex:
-        raise ex
-
+    except Exception as e:
+        log.error("Error: {}".format(e))
+        raise e
 
 
 def create_certs(path):
@@ -57,8 +62,9 @@ def create_certs(path):
 
             save_pem(path, server_key, server_cert)
 
-    except Exception as ex:
-        raise ex
+    except Exception as e:
+        log.error("Error: {}".format(e))
+        raise e
 
 def create_cert_dir(path):
     path.mkdir(parents=True, exist_ok=True)

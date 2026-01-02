@@ -1,10 +1,11 @@
 import ssl
 import requests
-
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from flask import json
 from utils import CONFIG_PATH
+from analytics.logger import setup_logger
 
+log = setup_logger()
 
 with open(CONFIG_PATH) as f:
     cfg = json.load(f)
@@ -15,25 +16,31 @@ class ReverseProxyHandler(BaseHTTPRequestHandler):
 
     def _proxy(self):
 
-        url = f"http://{server_cfg["internal_host"]}:{server_cfg["internal_port"]}{self.path}"
+        try:
+            url = f"http://{server_cfg["internal_host"]}:{server_cfg["internal_port"]}{self.path}"
 
-        headers = {k: v for k, v in self.headers.items()}
-        body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            headers = {k: v for k, v in self.headers.items()}
+            body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
 
-        resp = requests.request(
-            method=self.command,
-            url=url,
-            headers=headers,
-            data=body,
-            stream=True
-        )
+            resp = requests.request(
+                method=self.command,
+                url=url,
+                headers=headers,
+                data=body,
+                stream=True
+            )
 
-        self.send_response(resp.status_code)
-        for k, v in resp.headers.items():
-            if k.lower() != "transfer-encoding":
-                self.send_header(k, v)
-        self.end_headers()
-        self.wfile.write(resp.content)
+            self.send_response(resp.status_code)
+            for k, v in resp.headers.items():
+                if k.lower() != "transfer-encoding":
+                    self.send_header(k, v)
+            self.end_headers()
+            self.wfile.write(resp.content)
+
+        except Exception as e:
+            log.error("Error: {}".format(e))
+            raise e
+
 
     def do_GET(self): self._proxy()
     def do_POST(self): self._proxy()
@@ -44,19 +51,23 @@ class ReverseProxyHandler(BaseHTTPRequestHandler):
 
 def start_https_proxy(server_cfg):
 
-    httpd = HTTPServer(
-        (server_cfg["public_host"], server_cfg["public_port"]),
-        ReverseProxyHandler
-    )
+    try:
+        httpd = HTTPServer(
+            (server_cfg["public_host"], server_cfg["public_port"]),
+            ReverseProxyHandler
+        )
 
-    httpd.internal_host = server_cfg["internal_host"]
-    httpd.internal_port = server_cfg["internal_port"]
+        httpd.internal_host = server_cfg["internal_host"]
+        httpd.internal_port = server_cfg["internal_port"]
 
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(
-        certfile=secure_cfg["cert"],
-        keyfile=secure_cfg["key"]
-    )
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain(
+            certfile=secure_cfg["cert"],
+            keyfile=secure_cfg["key"]
+        )
 
-    httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
-    httpd.serve_forever()
+        httpd.socket = context.wrap_socket(httpd.socket, server_side=True)
+        httpd.serve_forever()
+
+    except Exception as e:
+        log.error("Error: {}".format(e))

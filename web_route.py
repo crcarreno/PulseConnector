@@ -11,6 +11,10 @@ from utils import CONFIG_PATH
 #from views_engine.engine import ViewEngine
 #from views_engine.loader import FileViewLoader
 from version import __version__
+from analytics.logger import setup_logger
+
+log = setup_logger()
+
 
 app = Flask(__name__)
 db = None
@@ -61,19 +65,25 @@ def health():
 '''
 @app.route("/login", methods=["POST"])
 def login():
-    username = request.json.get("username")
-    password = request.json.get("password")
 
-    if not username or not password or admin_user != password:
-        return {"msg": "Invalid credentials"}, 401
+    try:
+        username = request.json.get("username")
+        password = request.json.get("password")
 
-    access_token = create_access_token(
-        identity=username
-    )
+        if not username or not password or admin_user != password:
+            return {"msg": "Invalid credentials"}, 401
 
-    return {
-        "access_token": access_token
-    }
+        access_token = create_access_token(
+            identity=username
+        )
+
+        return {
+            "access_token": access_token
+        }
+
+    except Exception as e:
+        log.error("Error: {}".format(e))
+        return jsonify({"error": str(e)}), 500
 
 
 @jwt.expired_token_loader
@@ -86,25 +96,31 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 @app.before_request
 def guard():
-    # Permitimos siempre status y version
+
     if request.path in ("/status", "/version"):
         return
 
-    # Si el server está "stopped", negamos servicio
     if not server_state.running:
         abort(503, "Server stopped")
 
 
 @app.before_request
 def log_request():
-    payload = {
-        "type": "request",
-        "method": request.method,
-        "path": request.path + str(request.args.to_dict(flat=True)),
-        "remote": request.remote_addr,
-        "args": request.args.to_dict()
-    }
-    log_bridge.log.emit(json.dumps(payload))
+
+    try:
+        payload = {
+            "type": "request",
+            "method": request.method,
+            "path": request.path + str(request.args.to_dict(flat=True)),
+            "remote": request.remote_addr,
+            "args": request.args.to_dict()
+        }
+
+        log_bridge.log.emit(json.dumps(payload))
+
+    except Exception as e:
+        log.error("Error: {}".format(e))
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/odata/<table_name>", methods=["GET"])
@@ -135,6 +151,7 @@ def odata_table(table_name):
         return jsonify(data)
 
     except Exception as e:
+        log.error("Error: {}".format(e))
         increment_request(kind="light", success=False)
         return jsonify({"error": str(e)}), 500
 
@@ -143,13 +160,18 @@ def odata_table(table_name):
 @jwt_required()
 def odata_insert(table_name):
 
-    body = request.json
+    try:
+        body = request.json
 
-    if not body:
-        abort(400, "json body required")
+        if not body:
+            abort(400, "json body required")
 
-    result = db.insert_odata(table_name, body)
-    return jsonify(result)
+        result = db.insert_odata(table_name, body)
+        return jsonify(result)
+
+    except Exception as e:
+        log.error("Error: {}".format(e))
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/odata/<table_name>/<id>", methods=["PATCH", "PUT"])
@@ -159,13 +181,18 @@ def odata_update(table_name, id):
         PUT: Replace all
         PATCH:  Replace only in json body
     '''
-    body = request.json
-    if not body:
-        abort(400, "json body required")
 
-    result = db.update_odata(table_name, "id", id, body)
-    return jsonify(result)
+    try:
+        body = request.json
+        if not body:
+            abort(400, "json body required")
 
+        result = db.update_odata(table_name, "id", id, body)
+        return jsonify(result)
+
+    except Exception as e:
+        log.error("Error: {}".format(e))
+        return jsonify({"error": str(e)}), 500
 
 '''
 view_engine = ViewEngine(FileViewLoader("views/views.json"))

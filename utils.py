@@ -1,4 +1,3 @@
-# utils.py
 import os
 import sys
 import threading

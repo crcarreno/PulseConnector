@@ -331,6 +331,39 @@ https://localhost:5000/odata/customers?$select=id,company
     }
 ```
 
+# Logs
+## Logs in linux
+
+- General read
+```shell
+journalctl -t PulseConnector
+```
+
+- Real time
+```shell
+journalctl -t PulseConnector -f
+```
+
+- Only errors
+```shell
+journalctl -t PulseConnector -p err
+```
+
+- Path ubuntu
+```shell
+grep PulseConnector /var/log/syslog
+```
+
+- Path RHEL / CentOS / Rocky
+```shell
+grep PulseConnector /var/log/messages
+```
+
+## Logs in windows
+- Use view event
+  - eventvwr.msc
+  - filter events: PulseConnector
+---
 
 # License
 

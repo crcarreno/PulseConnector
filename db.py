@@ -1,6 +1,9 @@
 # db.py
 from sqlalchemy import MetaData, inspect
 from db_pool import MSSQLAdapter, MySQLAdapter, PostgresAdapter
+from analytics.logger import setup_logger
+
+log = setup_logger()
 
 
 class Meta:
@@ -27,6 +30,7 @@ class DB:
             self.adapter = PostgresAdapter(cfg, analytics)
 
         else:
+            log.error("Unknown DB dialect %s" % dialect)
             raise ValueError("Unsupported dialect")
 
         self.load_metadata()
@@ -96,6 +100,8 @@ class DB:
             rows = cur.fetchall()
             self.meta = self._build_meta(rows)
 
+        except Exception as e:
+            log.error("Error: {}".format(e))
         finally:
             if cur:
                 cur.close()
@@ -128,6 +134,7 @@ class DB:
             cur.execute(sql, params or [])
             return cur.fetchall()
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
@@ -206,6 +213,7 @@ class DB:
             return self.meta.tables[table_name]
 
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
@@ -282,6 +290,7 @@ class DB:
                 "rows": rows
             }
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
@@ -330,6 +339,7 @@ class DB:
 
             return (" AND ".join(clauses), params) if clauses else (None, None)
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
@@ -358,6 +368,7 @@ class DB:
             return {"status": "ok"}
 
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
@@ -367,6 +378,7 @@ class DB:
                 }
             )
             raise RuntimeError(f"Error : {e}")
+
 
     def update_odata(self, table_name, key_column: str, key_value, data: dict):
         try:
@@ -399,6 +411,7 @@ class DB:
             return {"status": "ok"}
 
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
@@ -408,6 +421,7 @@ class DB:
                 }
             )
             raise RuntimeError(f"Error : {e}")
+
 
     def test_connection(self):
         conn = None
@@ -419,6 +433,7 @@ class DB:
             cur.fetchone()
             return {"ok": True}
         except Exception as e:
+            log.error("Error: {}".format(e))
             self.analytics.capture_error(
                 e,
                 component="DB",
