@@ -25,7 +25,6 @@ def _setup_linux_logger(logger):
     try:
         handler = SysLogHandler(address="/dev/log")
     except Exception:
-        # fallback (algunos sistemas)
         handler = SysLogHandler(address=("localhost", 514))
 
     formatter = logging.Formatter(
@@ -48,15 +47,3 @@ def _setup_windows_logger(logger):
 
     handler.setFormatter(formatter)
     logger.addHandler(handler)
-
-    '''
-    IMPLEMENT:
-    
-        from logger import setup_logger
-        
-        log = setup_logger()
-        
-        log.info("PulseConnector started")
-        log.warning("Slow query detected")
-        log.error("Database connection failed")
-    '''
