@@ -1,0 +1,31 @@
+{
+  "endpoints": [
+    {
+      "name": "get_data_orders_detail",
+      "dialect": "mssql",
+      "database": "northwind",
+      "type": "table",
+      "source": "OrderDetails",
+      "namespace": "sqlserver",
+      "primary_key": ""
+    },
+    {
+      "name": "get_data_orders",
+      "dialect": "mssql",
+      "database": "northwind",
+      "type": "table",
+      "source": "Orders",
+      "namespace": "sqlserver",
+      "primary_key": "OrderID"
+    },
+    {
+      "name": "get_data_employees",
+      "dialect": "mssql",
+      "database": "northwind",
+      "type": "table",
+      "source": "Employees",
+      "namespace": "sqlserver",
+      "primary_key": ""
+    }
+  ]
+}

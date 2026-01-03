@@ -70,3 +70,4 @@ def get_base_path():
 
 BASE_PATH = get_base_path()
 CONFIG_PATH = BASE_PATH / "config.json"
+SECURITY_PATH = BASE_PATH / "security"

@@ -1,0 +1,22 @@
+{
+  "users": [
+    {
+          "user": "user1",
+          "display_name": "User test 1",
+          "password_hash": "123",
+          "active": true
+    },
+    {
+          "user": "user2",
+          "display_name": "User test 2",
+          "password_hash": "123",
+          "active": true
+        },
+    {
+          "user": "user3",
+          "display_name": "User test 3",
+          "password_hash": "123",
+          "active": true
+        }
+    ]
+}

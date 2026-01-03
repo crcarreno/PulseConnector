@@ -3,7 +3,7 @@ import threading
 from waitress import serve
 from threads import server_state
 from utils import CONFIG_PATH
-from web_route import app, init_db
+from routes.api_routes import app, init_db
 from threads.log_bridge import log_bridge
 from proxy import start_https_proxy
 from analytics.logger import setup_logger

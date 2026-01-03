@@ -1,0 +1,42 @@
+{
+  "permissions": [
+    {
+        "uid": 1,
+        "by": "user",
+        "active": true,
+        "group_or_user": [
+          "user1"
+        ],
+        "endpoints": [
+          {
+            "name": "get_data_orders_detail",
+            "actions": ["read", "write"]
+          },
+          {
+            "name": "get_data_orders",
+            "actions": ["read"]
+          },
+          {
+            "name": "get_data_employees",
+            "actions": ["read"]
+          }
+        ]
+    },
+    {
+        "uid": 2,
+        "by": "group",
+        "active": true,
+        "group_or_user": [
+          "public"
+        ],
+        "endpoints": [
+          {
+            "name": "get_data_orders",
+            "actions": ["read"]
+          }
+        ]
+    }
+  ],
+  "priority": "user_over_group"
+
+}

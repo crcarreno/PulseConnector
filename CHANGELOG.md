@@ -4,6 +4,22 @@
 
 ## v1.2.1 (2026-01-02)
 
+
+*January 3, 2026*
+
+- Added
+  - Logical API namespaces (/odata/<namespace>/<endpoint>).
+  - Endpoint-to-source mapping via configuration (no table names exposed).
+  - Permission checks per endpoint and action (read / write).
+
+- Changed
+  - OData routing now resolves logical endpoints instead of physical tables.
+
+- Fixed
+  - Incorrect endpoint resolution and duplicated query results.
+  - Case-sensitivity issues in table name matching.
+
+
 ### Features
 
 *January 2, 2026*

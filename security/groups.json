@@ -1,0 +1,26 @@
+{
+  "groups": [
+    {
+          "group": "public",
+          "display_name": "Public",
+          "active": true,
+          "users":[
+            "user1",
+            "user2"
+          ]
+    },
+    {
+          "group": "group1",
+          "display_name": "Group 1",
+          "active": true,
+          "users":[
+                "user3"
+              ]
+        },
+    {
+          "group": "group2",
+          "display_name": "Group 2",
+          "active": true
+        }
+    ]
+}
