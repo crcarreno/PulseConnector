@@ -1,0 +1,255 @@
+{
+  "info": {
+    "name": "PulseConnector IAM",
+    "description": "IAM Admin API for Users, Groups, Endpoints and Permissions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/users",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"user1\",\n  \"display_name\": \"User Test 1\",\n  \"password_hash\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/users"
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/users/get",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"user1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/users/update",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"user1\",\n  \"display_name\": \"User Updated\",\n  \"password_hash\": \"newhash\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Disable User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/users/disable",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": \"user1\",\n  \"action\": 0\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/groups",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\",\n  \"display_name\": \"Public Group\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Groups",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/groups"
+          }
+        },
+        {
+          "name": "Get Group",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/groups/get",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Group",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/groups/update",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\",\n  \"display_name\": \"Public Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Disable Group",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/groups/disable",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\",\n  \"action\": 0\n}"
+            }
+          }
+        },
+        {
+          "name": "Add User to Group",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/groups/add-user",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\",\n  \"user\": \"user1\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove User from Group",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/groups/remove-user",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\",\n  \"user\": \"user1\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Endpoints",
+      "item": [
+        {
+          "name": "Create Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/endpoints",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get_data_orders\",\n  \"dialect\": \"mssql\",\n  \"database\": \"northwind\",\n  \"type\": \"table\",\n  \"source\": \"Orders\",\n  \"namespace\": \"sqlserver\",\n  \"primary_key\": \"OrderID\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Endpoints",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/endpoints"
+          }
+        },
+        {
+          "name": "Get Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/endpoints/get",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get_data_orders\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Endpoint",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/endpoints/update",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get_data_orders\",\n  \"source\": \"OrdersArchive\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "item": [
+        {
+          "name": "Create Permission",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/permissions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"by\": \"user\",\n  \"target\": \"user1\",\n  \"endpoints\": [\n    { \"name\": \"get_data_orders\", \"actions\": [\"read\", \"write\"] }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "List Permissions",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/permissions"
+          }
+        },
+        {
+          "name": "Get Permission",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/permissions/get",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "Disable Permission",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/admin/permissions/disable",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": 1,\n  \"action\": 0\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

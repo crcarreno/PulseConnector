@@ -4,6 +4,16 @@
 
 ## v1.2.1 (2026-01-02)
 
+*January 4, 2026*
+
+- Added
+  - SQLite-based IAM persistence layer
+  - Admin API for managing users, groups, endpoints and permissions
+  - Full CRUD operations using JSON payloads
+  - Group-user relationship management
+  - Permission policies for users and groups
+  - Postman collection for end-to-end IAM testing
+
 
 *January 3, 2026*
 

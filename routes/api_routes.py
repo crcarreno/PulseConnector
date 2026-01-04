@@ -1,9 +1,8 @@
 from collections import defaultdict
-
 from flask import Flask, request, jsonify, abort, json
-
 from analytics.usage_counter import increment_request
 from db import DB
+from security.iam_services import IAMService
 from security.password_hasher import PasswordHasher
 from security.security_provider import SecurityProvider
 from threads import server_state
@@ -20,6 +19,7 @@ log = setup_logger()
 app = Flask(__name__)
 db = None
 
+iam = IAMService()
 basic_auth = HTTPBasicAuth()
 
 with open(CONFIG_PATH) as f:
@@ -33,7 +33,6 @@ app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=secure_cfg["jwt_refresh
 admin_user = secure_cfg["admin_user"]
 
 jwt = JWTManager(app)
-
 
 secProvider = SecurityProvider(SECURITY_PATH)
 secProvider.load_all()
