@@ -1,6 +1,7 @@
 from routes.api_routes import app
-from flask import render_template, request
+from flask import render_template, request, abort
 from security.iam_services import IAMService
+from security.password_hasher import PasswordHasher
 
 iam = IAMService()
 
@@ -20,12 +21,24 @@ def index():
 # User create
 @app.post("/admin/users")
 def create_user_endpoint():
-    data = request.json
+
+    data = request.get_json(silent=True)
+
+    if not data:
+        abort(400, description="Request body is required")
+
+    user = data.get("user")
+    password = data.get("password_hash")
+
+    if not user or not password:
+        abort(400, description="user and password are required")
+
+    ph = PasswordHasher()
 
     iam.create_user(
-        user=data["user"],
+        user=user,
         display=data.get("display_name", ""),
-        password=data["password_hash"]
+        password=ph.hash_password(password)
     )
 
     return {"status": "created"}, 201
@@ -52,8 +65,10 @@ def update_user():
     if "display_name" in data:
         fields["display_name"] = data["display_name"]
 
+    ph = PasswordHasher()
+
     if "password_hash" in data:
-        fields["password_hash"] = data["password_hash"]
+        fields["password_hash"] = ph.hash_password(data["password_hash"])
 
     if not fields:
         return {"error": "No fields to update"}, 400
@@ -152,6 +167,12 @@ def remove_user_from_group():
     )
 
     return {"status": "user removed"}, 200
+
+# Group list members
+@app.post("/admin/groups/members")
+def list_group_members():
+    data = request.json
+    return iam.list_group_members(data["group"]), 200
 
 
 # ------------- Endpoint -----------------

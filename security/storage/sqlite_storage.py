@@ -15,24 +15,67 @@ class SQLiteStorage:
         conn.execute("PRAGMA foreign_keys = ON")
         return conn
 
-
     def _init_db(self):
         schema = Path("security/storage/schema.sql").read_text()
         with self._conn() as conn:
             conn.executescript(schema)
 
+    def get_user_permissions(self, username):
+
+        with self._conn() as c:
+            rows = c.execute("""
+                             SELECT DISTINCT pa.endpoint_name,
+                                             pa.action
+                             FROM permissions p
+                                      INNER JOIN permission_actions pa
+                                                 ON pa.permission_uid = p.uid
+                                      LEFT JOIN group_users gu
+                                                ON p.by_type = 'group'
+                                                    AND gu.group_name = p.target
+                             WHERE p.active = 1
+                               AND (
+                                 (p.by_type = 'user' AND p.target = ?)
+                                     OR (p.by_type = 'group' AND gu.user = ?)
+                                 )
+                             """, (username, username)).fetchall()
+
+            perms = {}
+            for r in rows:
+                perms.setdefault(r["endpoint_name"], set()).add(r["action"])
+
+            return perms
+
 
     # ---------- USERS ----------
 
+    def validate_user_credentials(self, user, password_hash):
+        with self._conn() as c:
+            row = c.execute("""
+                            SELECT user, password_hash, active
+                            FROM users
+                            WHERE user = ?
+                            """, (user,)).fetchone()
+
+            if not row:
+                return False, "User not found"
+
+            if row["active"] != 1:
+                return False, "User disabled"
+
+            if row["password_hash"] != password_hash:
+                return False, "Invalid credentials"
+
+            return True, "OK"
+
     def list_users(self):
         with self._conn() as c:
-            return c.execute("SELECT * FROM users").fetchall()
+            return c.execute("SELECT user, display_name FROM users").fetchall()
 
 
     def get_user(self, user):
         with self._conn() as c:
             row = c.execute(
-                "SELECT * FROM users WHERE user = ?", (user,)
+                "SELECT user, display_name, active, password_hash FROM users WHERE user = ?", (user,)
             ).fetchone()
             if not row:
                 raise ValueError("User not found")
@@ -121,12 +164,25 @@ class SQLiteStorage:
             if cur.rowcount == 0:
                 raise ValueError("Group not found")
 
+    def list_group_members(self, group):
+        with self._conn() as c:
+            rows = c.execute("""
+                             SELECT u.user,
+                                    u.display_name,
+                                    u.active
+                             FROM group_users gu
+                                      INNER JOIN users u ON u.user = gu.user
+                             WHERE gu.group_name = ?
+                             """, (group,)).fetchall()
+
+            return [dict(r) for r in rows]
+
+
     # ---------- ENDPOINTS ----------
 
     def list_endpoints(self):
         with self._conn() as c:
             return c.execute("SELECT * FROM endpoints").fetchall()
-
 
     def register_endpoint(self, ep: dict):
         with self._conn() as c:

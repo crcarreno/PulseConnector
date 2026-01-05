@@ -152,6 +152,23 @@
               "raw": "{\n  \"group\": \"public\",\n  \"user\": \"user1\"\n}"
             }
           }
+        },
+        {
+          "name": "List Group Members",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/admin/groups/members",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"group\": \"public\"\n}"
+            }
+          }
         }
       ]
     },

@@ -4,7 +4,6 @@ from analytics.usage_counter import increment_request
 from db import DB
 from security.iam_services import IAMService
 from security.password_hasher import PasswordHasher
-from security.security_provider import SecurityProvider
 from threads import server_state
 from threads.log_bridge import log_bridge
 from flask_httpauth import HTTPBasicAuth
@@ -14,6 +13,10 @@ from utils import CONFIG_PATH, SECURITY_PATH
 from version import __version__
 from analytics.logger import setup_logger
 
+with open(CONFIG_PATH) as f:
+    cfg = json.load(f)
+    secure_cfg = cfg["security"]
+
 log = setup_logger()
 
 app = Flask(__name__)
@@ -21,10 +24,6 @@ db = None
 
 iam = IAMService()
 basic_auth = HTTPBasicAuth()
-
-with open(CONFIG_PATH) as f:
-    cfg = json.load(f)
-    secure_cfg = cfg["security"]
 
 app.config["JWT_SECRET_KEY"] = secure_cfg["jwt_secret_key"]
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=secure_cfg["jwt_access_token_expires"])
@@ -34,59 +33,34 @@ admin_user = secure_cfg["admin_user"]
 
 jwt = JWTManager(app)
 
-secProvider = SecurityProvider(SECURITY_PATH)
-secProvider.load_all()
-
-users = secProvider.get_users()
-groups = secProvider.get_groups()
-endpoints = secProvider.get_endpoints()
-permissions = secProvider.get_permissions()
-
 USER_PERMISSIONS = defaultdict(lambda: defaultdict(set))
 
-def build_permission_cache():
+def build_permission_cache(iam):
+    USER_PERMISSIONS.clear()
 
-    for perm in permissions:
-        if not perm["active"]:
-            continue
+    users = iam.list_users()
+    for u in users:
+        perms = iam.db.get_user_permissions(u["user"])
+        for ep, actions in perms.items():
+            USER_PERMISSIONS[u["user"]][ep].update(actions)
 
-        targets = perm["group_or_user"]
-
-        for ep in perm["endpoints"]:
-            ep_name = ep["name"]
-            actions = set(ep["actions"])
-
-            if perm["by"] == "user":
-                for user in targets:
-                    USER_PERMISSIONS[user][ep_name].update(actions)
-
-            elif perm["by"] == "group":
-                for group in targets:
-                    grp = secProvider.get_group(group)
-                    if not grp:
-                        continue
-                    for user in grp.get("users", []):
-                        USER_PERMISSIONS[user][ep_name].update(actions)
+def can_access(username, endpoint_name, action):
+    return action in USER_PERMISSIONS.get(username, {}).get(endpoint_name, set())
 
 
-build_permission_cache()
+build_permission_cache(iam)
 
 ENDPOINT_BY_NAMESPACE = {}
 
-for ep in endpoints:
-    namespace = ep.get("namespace")
-    name = ep.get("name")
-
-    if not namespace or not name:
-        continue
+for ep in iam.list_endpoints():
+    namespace = ep["namespace"]
+    name = ep["name"]
 
     ENDPOINT_BY_NAMESPACE.setdefault(namespace, {})[name] = ep
 
-
 def reload_security():
     USER_PERMISSIONS.clear()
-    secProvider.load_all()
-    build_permission_cache()
+    build_permission_cache(iam)
 
 
 def init_db(cfg, analytics):
@@ -121,7 +95,6 @@ def health():
 @app.route("/login", methods=["POST"])
 def login():
     try:
-
         data = request.get_json()
 
         username = data.get("username")
@@ -130,25 +103,30 @@ def login():
         if not username or not password:
             return {"msg": "Username and password required"}, 400
 
-        user = secProvider.get_user(username)
+        user = iam.get_user(username)
 
-        if not user or not user.get("active"):
+        if not user or user.get("active") != 1:
             return {"msg": "Invalid credentials"}, 401
 
-        #hasher = PasswordHasher()
-
-        #if not hasher.verify_password(user["password_hash"], password):
-        #    return {"msg": "Invalid credentials"}, 401
+        hasher = PasswordHasher()
+        if not hasher.verify_password(user["password_hash"], password):
+            return {"msg": "Invalid credentials"}, 401
 
         access_token = create_access_token(
             identity=username
         )
 
-        return {"access_token": access_token}
+        return {
+            "access_token": access_token
+        }, 200
+
+    except ValueError:
+        return {"msg": "Invalid credentials"}, 401
 
     except Exception as e:
         log.error(f"Login error: {e}")
         return {"error": "Internal error"}, 500
+
 
 
 @jwt.expired_token_loader

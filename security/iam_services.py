@@ -7,6 +7,9 @@ class IAMService:
         self.db = SQLiteStorage(Path("database/pulseconnector.db"))
 
     # USERS
+    def validate_user(self, user, password_hash):
+        return self.db.validate_user_credentials(user, password_hash)
+
     def list_users(self):
         return [dict(u) for u in self.db.list_users()]
 
@@ -51,6 +54,10 @@ class IAMService:
 
     def enable_disable_group(self, group, action):
         self.db.enable_disable_group(group, action)
+
+    def list_group_members(self, group):
+        return self.db.list_group_members(group)
+
 
     # ENDPOINTS
     def list_endpoints(self):
