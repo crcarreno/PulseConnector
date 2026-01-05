@@ -7,6 +7,9 @@
 *January 4, 2026*
 
 - Added
+  - Integrated SQLite-backed IAM permission checks
+  - Enforced user and group-based authorization on OData endpoints
+  - Added runtime access validation using JWT identity
   - SQLite-based IAM persistence layer
   - Admin API for managing users, groups, endpoints and permissions
   - Full CRUD operations using JSON payloads
