@@ -1,5 +1,24 @@
 import { Usage } from "./schema"
 
+export const dialects: { value: string; label: string }[] = [
+  {
+    value: "mysql",
+    label: "MySQL",
+  },
+  {
+    value: "mariadb",
+    label: "MariaDB",
+  },
+  {
+    value: "mssql",
+    label: "SQL Server",
+  },
+  {
+    value: "postgres",
+    label: "PostgresSQL",
+  },
+]
+
 export const roles: { value: string; label: string }[] = [
   {
     value: "admin",
@@ -94,47 +113,23 @@ export const users: {
   role: string
 }[] = [
   {
-    name: "Emma Stone",
+    name: "Procarsa",
     initials: "ES",
-    email: "a.stone@gmail.com",
+    email: "SQL Server",
     role: "viewer",
   },
   {
-    name: "Alissia McCalister",
+    name: "Pronaca",
     initials: "AM",
-    email: "a.stone@gmail.com",
+    email: "PostgresSQL",
     role: "viewer",
   },
   {
-    name: "Emily Luisa Bernacle",
+    name: "Imtaco",
     initials: "EB",
-    email: "e.luis.bernacle@gmail.com",
+    email: "MySQL",
     role: "member",
-  },
-  {
-    name: "Aaron Wave",
-    initials: "AW",
-    email: "a.flow@acme.com",
-    role: "contributor",
-  },
-  {
-    name: "Thomas Palstein",
-    initials: "TP",
-    email: "t.palstein@acme.com",
-    role: "viewer",
-  },
-  {
-    name: "Sarah Johnson",
-    initials: "SJ",
-    email: "s.johnson@gmail.com",
-    role: "admin",
-  },
-  {
-    name: "Megan Katherina Brown",
-    initials: "MB",
-    email: "m.lovelybrown@gmail.com",
-    role: "contributor",
-  },
+  }
 ]
 
 export const invitedUsers: {

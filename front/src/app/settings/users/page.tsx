@@ -134,7 +134,7 @@ export default function Users() {
                   id="notification-settings"
                   className="scroll-mt-10 font-semibold text-gray-900 dark:text-gray-50"
                 >
-                  Notification settings
+                  Database connections
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-gray-500">
                   Configure the types of notifications you want to receive.

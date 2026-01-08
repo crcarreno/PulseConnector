@@ -14,8 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Select"
+
 import { Tooltip } from "@/components/Tooltip"
-import { ModalAddUser } from "@/components/ui/settings/ModalAddUser"
+import { ModalAddConnection } from "@/components/ui/settings/ModalAddConnection"
 import { invitedUsers, roles, users } from "@/data/data"
 import { RiAddLine, RiMore2Fill } from "@remixicon/react"
 
@@ -29,23 +30,25 @@ export default function Users() {
               id="existing-users"
               className="scroll-mt-10 font-semibold text-gray-900 dark:text-gray-50"
             >
-              Users
+              Database connections
             </h3>
             <p className="text-sm leading-6 text-gray-500">
-              Workspace administrators can add, manage, and remove users.
+              Add database connection
             </p>
           </div>
-          <ModalAddUser>
+          <ModalAddConnection>
             <Button className="mt-4 w-full gap-2 sm:mt-0 sm:w-fit">
               <RiAddLine className="-ml-1 size-4 shrink-0" aria-hidden="true" />
-              Add user
+              Add connection
             </Button>
-          </ModalAddUser>
+          </ModalAddConnection>
         </div>
         <ul
           role="list"
           className="mt-6 divide-y divide-gray-200 dark:divide-gray-800"
         >
+
+
           {users.map((user) => (
             <li
               key={user.name}
@@ -65,6 +68,7 @@ export default function Users() {
                   <p className="truncate text-xs text-gray-500">{user.email}</p>
                 </div>
               </div>
+
               <div className="flex items-center gap-2">
                 {user.role === "admin" ? (
                   <Tooltip
@@ -145,6 +149,8 @@ export default function Users() {
           ))}
         </ul>
       </section>
+
+
       <section className="mt-12" aria-labelledby="pending-invitations">
         <h2
           id="pending-invitations"
