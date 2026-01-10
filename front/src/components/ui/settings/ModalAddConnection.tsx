@@ -1,3 +1,5 @@
+"use client"
+
 import { Button } from "@/components/Button"
 import {
   Dialog,
@@ -18,13 +20,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Select"
-import { dialects } from "@/data/data"
+//import { dialects } from "@/data/data"
+import { useEffect, useState } from "react"
+
+type Dialect = {
+  value: string
+  label: string
+}
+
+export function useDialects() {
+
+  const [dialects, setDialects] = useState<Dialect[]>([])
+  const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+      fetch("https://localhost:5000/admin/dialects")
+        .then(res => res.json())
+        .then(data => {
+          console.log("API response:", data)
+          setDialects(data.items)
+        })
+        .catch(err => {
+          console.error("Fetch error:", err)
+        })
+        .finally(() => setLoading(false))
+    }, [])
+
+  return { dialects, loading }
+}
 
 export type ModalAddConnectionProps = {
   children: React.ReactNode
 }
 
 export function ModalAddConnection({ children }: ModalAddConnectionProps) {
+  const { dialects, loading } = useDialects()
+
+
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -40,26 +72,33 @@ export function ModalAddConnection({ children }: ModalAddConnectionProps) {
               <Label htmlFor="dialect-new-connection" className="font-medium">
                 Select database
               </Label>
-              <Select>
-                <SelectTrigger
-                  id="dialect-new-connection"
-                  name="dialect-new-connection"
-                  className="mt-2"
-                >
-                  <SelectValue placeholder="Select database..." />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {dialects.map((dialect) => (
-                    <SelectItem
-                      key={dialect.value}
-                      value={dialect.value}
-                      disabled={dialect.value === "admin"}
-                    >
-                      {dialect.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Select onValueChange={value => null}>
+                  <SelectTrigger
+                    id="dialect-new-connection"
+                    name="dialect-new-connection"
+                    className="mt-2"
+                  >
+                    <SelectValue placeholder="Select database..." />
+                  </SelectTrigger>
+
+                  <SelectContent>
+                    {loading && (
+                      <SelectItem value="loading" disabled>
+                        Loading...
+                      </SelectItem>
+                    )}
+
+                    {dialects.map(dialect => (
+                      <SelectItem
+                        key={dialect.id}
+                        value={dialect.id}
+                      >
+                        {dialect.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
             </div>
 
             <div className="mt-4">

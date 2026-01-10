@@ -1,5 +1,6 @@
 from collections import defaultdict
 from flask import Flask, request, jsonify, abort, json
+from flask_cors import CORS
 from analytics.usage_counter import increment_request
 from db import DB
 from security.iam_services import IAMService
@@ -21,6 +22,11 @@ log = setup_logger()
 
 app = Flask(__name__)
 db = None
+
+CORS(
+    app,
+    resources={r"/admin/*": {"origins": "http://localhost:3000"}}
+)
 
 iam = IAMService()
 basic_auth = HTTPBasicAuth()

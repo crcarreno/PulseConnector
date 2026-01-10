@@ -267,6 +267,107 @@
           }
         }
       ]
+    },
+    {
+      "name": "Dialects",
+      "item": [
+        {
+          "name": "List Dialects",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/dialects"
+          }
+        },
+        {
+          "name": "Create Dialect",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/admin/dialects",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"mysql\",\n  \"name\": \"MySQL\",\n  \"supported_versions\": \">=5.7\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Dialect",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/admin/dialects/{{dialect_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supported_versions\": \">=8.0\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Disable Dialect",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/admin/dialects/{{dialect_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": false\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Data Sources",
+      "item": [
+        {
+          "name": "List Data Sources",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/admin/data-sources"
+          }
+        },
+        {
+          "name": "Create Data Source",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/admin/data-sources",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Northwind MySQL\",\n  \"dialect_id\": \"{{dialect_id}}\",\n  \"host\": \"127.0.0.1\",\n  \"port\": 3306,\n  \"username\": \"root\",\n  \"password\": \"root\",\n  \"database_name\": \"northwind\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Data Source",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/admin/data-sources/{{data_source_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"host\": \"192.168.1.10\",\n  \"port\": 3306,\n  \"database_name\": \"northwind_v2\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Data Source",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/admin/data-sources/{{data_source_id}}"
+          }
+        }
+      ]
     }
   ]
 }

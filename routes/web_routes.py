@@ -1,11 +1,15 @@
+from uuid import uuid4
+
 from routes.api_routes import app
 from flask import render_template, request, abort
 from security.iam_services import IAMService
+from security.config_services import ConfigServices
 from security.password_hasher import PasswordHasher
 
 iam = IAMService()
+conf = ConfigServices()
 
-# ------------- Front-end -----------------
+# ------------- Views -----------------
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -16,7 +20,120 @@ def index():
     return render_template("index.html")
 
 
-# ------------- Back-end -----------------
+
+# ------------- Config ---------------
+# ------------- Dialects -------------
+@app.get("/admin/dialects")
+def list_dialects_endpoint():
+    dialects = conf.list_dialects()
+
+    return {
+        "items": dialects,
+        "count": len(dialects)
+    }
+
+@app.post("/admin/dialects")
+def create_dialect_endpoint():
+    data = request.get_json(silent=True)
+
+    if not data:
+        abort(400, description="Request body is required")
+
+    key = data.get("key")
+    name = data.get("name")
+    versions = data.get("supported_versions")
+
+    if not key or not name or not versions:
+        abort(400, description="key, name and supported_versions are required")
+
+    conf.create_dialect(
+        id=str(uuid4()),
+        key=key,
+        name=name,
+        supported_versions=versions,
+        is_active=data.get("is_active", True)
+    )
+
+    return {"status": "created"}, 201
+
+
+# ---- Data Sources (DB Connections) ----
+@app.get("/admin/data-sources")
+def list_data_sources_endpoint():
+    data_sources = conf.list_data_sources()
+
+    return {
+        "items": data_sources,
+        "count": len(data_sources)
+    }
+
+
+@app.post("/admin/data-sources")
+def create_data_source_endpoint():
+    data = request.get_json(silent=True)
+
+    if not data:
+        abort(400, description="Request body is required")
+
+    required_fields = [
+        "name",
+        "dialect_id",
+        "host",
+        "port",
+        "username",
+        "password",
+        "database_name"
+    ]
+
+    for field in required_fields:
+        if not data.get(field):
+            abort(400, description=f"{field} is required")
+
+    conf.create_data_source(
+        id=str(uuid4()),
+        name=data["name"],
+        dialect_id=data["dialect_id"],
+        host=data["host"],
+        port=data["port"],
+        username=data["username"],
+        password=data["password"],  # encrypt before persist
+        database_name=data["database_name"],
+        is_active=data.get("is_active", True)
+    )
+
+    return {"status": "created"}, 201
+
+
+@app.put("/admin/data-sources/<data_source_id>")
+def update_data_source_endpoint(data_source_id):
+    data = request.get_json(silent=True)
+
+    if not data:
+        abort(400, description="Request body is required")
+
+    updated = conf.update_data_source(
+        data_source_id,
+        **data
+    )
+
+    if not updated:
+        abort(404, description="Data source not found")
+
+    return {"status": "updated"}
+
+
+@app.delete("/admin/data-sources/<data_source_id>")
+def delete_data_source_endpoint(data_source_id):
+    deleted = conf.delete_data_source(data_source_id)
+
+    if not deleted:
+        abort(404, description="Data source not found")
+
+    return {"status": "deleted"}
+
+
+
+
 # ------------- User -----------------
 # User create
 @app.post("/admin/users")

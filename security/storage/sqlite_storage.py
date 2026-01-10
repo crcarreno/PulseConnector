@@ -253,3 +253,129 @@ class SQLiteStorage:
             )
             if cur.rowcount == 0:
                 raise ValueError("Permission not found")
+
+
+
+
+    # ---------- CONFIG ----------
+    # ---------- DIALECTS ----------
+
+    def list_dialects(self):
+        with self._conn() as c:
+            rows = c.execute(
+                "SELECT id, key, name, supported_versions, is_active FROM dialects"
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_dialect(self, dialect_id):
+        with self._conn() as c:
+            row = c.execute(
+                "SELECT * FROM dialects WHERE id = ?",
+                (dialect_id,)
+            ).fetchone()
+            if not row:
+                raise ValueError("Dialect not found")
+            return dict(row)
+
+    def create_dialect(self, id, key, name, supported_versions, is_active=True):
+        with self._conn() as c:
+            c.execute(
+                """
+                INSERT INTO dialects (id, key, name, supported_versions, is_active)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (id, key, name, supported_versions, int(is_active))
+            )
+
+    def update_dialect(self, dialect_id, fields: dict):
+        keys = ", ".join(f"{k}=?" for k in fields)
+        values = list(fields.values()) + [dialect_id]
+
+        with self._conn() as c:
+            cur = c.execute(
+                f"UPDATE dialects SET {keys} WHERE id = ?",
+                values
+            )
+            if cur.rowcount == 0:
+                raise ValueError("Dialect not found")
+
+    def enable_disable_dialect(self, dialect_id, action: int):
+        self.update_dialect(dialect_id, {"is_active": action})
+
+
+    # ---------- DATA SOURCES ----------
+
+    def list_data_sources(self):
+        with self._conn() as c:
+            rows = c.execute(
+                """
+                SELECT ds.id,
+                       ds.name,
+                       ds.dialect_id,
+                       d.key AS dialect_key,
+                       ds.host,
+                       ds.port,
+                       ds.username,
+                       ds.database_name,
+                       ds.is_active
+                FROM data_sources ds
+                INNER JOIN dialects d ON d.id = ds.dialect_id
+                """
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+    def get_data_source(self, data_source_id):
+        with self._conn() as c:
+            row = c.execute(
+                "SELECT * FROM data_sources WHERE id = ?",
+                (data_source_id,)
+            ).fetchone()
+            if not row:
+                raise ValueError("Data source not found")
+            return dict(row)
+
+    def create_data_source(
+        self,
+        id,
+        name,
+        dialect_id,
+        host,
+        port,
+        username,
+        password,
+        database_name,
+        is_active=True
+    ):
+        with self._conn() as c:
+            c.execute(
+                """
+                INSERT INTO data_sources (
+                    id, name, dialect_id, host, port,
+                    username, password, database_name, is_active
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    id, name, dialect_id, host, port,
+                    username, password, database_name, int(is_active)
+                )
+            )
+
+    def update_data_source(self, data_source_id, fields: dict):
+        keys = ", ".join(f"{k}=?" for k in fields)
+        values = list(fields.values()) + [data_source_id]
+
+        with self._conn() as c:
+            cur = c.execute(
+                f"UPDATE data_sources SET {keys} WHERE id = ?",
+                values
+            )
+            if cur.rowcount == 0:
+                raise ValueError("Data source not found")
+
+    def delete_data_source(self, data_source_id):
+        with self._conn() as c:
+            cur = c.execute(
+                "DELETE FROM data_sources WHERE id = ?",
+                (data_source_id,)
+            )
+            return cur.rowcount > 0
