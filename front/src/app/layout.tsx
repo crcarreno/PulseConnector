@@ -1,9 +1,8 @@
 import type { Metadata } from "next"
-import { ThemeProvider } from "next-themes"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { siteConfig } from "./siteConfig"
-
+import { Providers } from "./providers"
 import { Sidebar } from "@/components/ui/navigation/Sidebar"
 
 const inter = Inter({
@@ -13,7 +12,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://yoururl.com"),
+  metadataBase: new URL("https://localhost:3000"),
   title: siteConfig.name,
   description: siteConfig.description,
   keywords: [],
@@ -32,28 +31,25 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     siteName: siteConfig.name,
   },
-  icons: {
-    icon: "/favicon.ico",
-  },
+    icons: {
+        icon: "/favicon.ico",
+      },
 }
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} overflow-y-scroll scroll-auto antialiased selection:bg-indigo-100 selection:text-indigo-700 dark:bg-gray-950`}
-        suppressHydrationWarning
+        className={`${inter.className} overflow-y-scroll scroll-auto antialiased dark:bg-gray-950`}
       >
-        <div className="mx-auto max-w-screen-2xl">
-          <ThemeProvider defaultTheme="system" attribute="class">
-            <Sidebar />
-            <main className="lg:pl-72">{children}</main>
-          </ThemeProvider>
-        </div>
+        <Providers>
+          <Sidebar />
+          <main className="lg:pl-72">{children}</main>
+        </Providers>
       </body>
     </html>
   )

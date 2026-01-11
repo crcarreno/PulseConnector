@@ -47,6 +47,13 @@ class ReverseProxyHandler(BaseHTTPRequestHandler):
     def do_PUT(self): self._proxy()
     def do_DELETE(self): self._proxy()
     def do_PATCH(self): self._proxy()
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "http://localhost:3000")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Access-Control-Allow-Credentials", "true")
+        self.end_headers()
 
 
 def start_https_proxy(server_cfg):

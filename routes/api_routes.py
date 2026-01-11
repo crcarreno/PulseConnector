@@ -23,10 +23,16 @@ log = setup_logger()
 app = Flask(__name__)
 db = None
 
+from flask_cors import CORS
+
 CORS(
     app,
-    resources={r"/admin/*": {"origins": "http://localhost:3000"}}
+    resources={r"/admin/*": {"origins": "http://localhost:3000"}},
+    supports_credentials=True,
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 )
+
 
 iam = IAMService()
 basic_auth = HTTPBasicAuth()

@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Button } from "@/components/Button"
 import {
   DropdownMenu,
@@ -7,6 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/Dropdown"
+import { RiAddLine, RiMore2Fill } from "@remixicon/react"
 import {
   Select,
   SelectContent,
@@ -14,13 +16,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Select"
+import { Switch } from "@/components/Switch"
 
 import { Tooltip } from "@/components/Tooltip"
 import { ModalAddConnection } from "@/components/ui/settings/ModalAddConnection"
 import { invitedUsers, roles, users } from "@/data/data"
-import { RiAddLine, RiMore2Fill } from "@remixicon/react"
 
-export default function Users() {
+export async function deleteDS(id: string) {
+  const res = await fetch(
+    `https://localhost:5000/admin/data-sources/${id}`,
+    { method: "DELETE" }
+  )
+
+  if (!res.ok) {
+    throw new Error("Delete failed")
+  }
+}
+
+export function useDataSources() {
+  const [datasource, setDataSources] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // GET lista
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("https://localhost:5000/admin/data-sources")
+      const data = await res.json()
+      setDataSources(data.items ?? [])
+    } catch (err) {
+      console.error("Fetch error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // DELETE + actualización de UI
+  const deleteDataSource = async (id: string) => {
+    // 1️⃣ Llamada al backend
+    await deleteDS(id)
+
+    // 2️⃣ Actualización del estado (UI)
+    setDataSources(prev => prev.filter(ds => ds.id !== id))
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  return {
+    datasource,
+    loading,
+    refetch: fetchData,
+    deleteDataSource,
+  }
+}
+
+export default function Connections() {
+
+    const { datasource, loading, deleteDataSource, refetch } = useDataSources()
+    const [enabled, setEnabled] = useState(datasource.is_active)
+
+  if (loading) return <p>Loading...</p>
+
+    const DIALECT_ICONS: Record<string, string> = {
+      postgres: "/assets/icons/postgresql-svgrepo-com.svg",
+      mysql: "/assets/icons/mysql-logo-svgrepo-com.svg",
+      mariadb: "/assets/icons/mariadb-svgrepo-com.svg",
+      mssql: "/assets/icons/microsoft-sql-server-logo-svgrepo-com.svg",
+      oracle: "/assets/icons/oracle-svgrepo-com.svg",
+      sqlite: "/assets/icons/sqlite-svgrepo-com.svg",
+    }
+
   return (
     <>
       <section aria-labelledby="existing-users">
@@ -36,7 +103,7 @@ export default function Users() {
               Add database connection
             </p>
           </div>
-          <ModalAddConnection>
+          <ModalAddConnection onSuccess={refetch}>
             <Button className="mt-4 w-full gap-2 sm:mt-0 sm:w-fit">
               <RiAddLine className="-ml-1 size-4 shrink-0" aria-hidden="true" />
               Add connection
@@ -48,77 +115,51 @@ export default function Users() {
           className="mt-6 divide-y divide-gray-200 dark:divide-gray-800"
         >
 
-          {users.map((user) => (
+          {datasource.map((ds) => (
             <li
-              key={user.name}
+              key={ds.id}
               className="flex items-center justify-between gap-x-6 py-2.5"
             >
               <div className="flex items-center gap-x-4 truncate">
                 <span
-                  className="hidden size-9 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-xs text-gray-700 sm:flex dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                  className="hidden size-16 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-xs text-gray-700 sm:flex dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
                   aria-hidden="true"
                 >
-                  {user.initials}
+                  {DIALECT_ICONS[ds.dialect_key] ? (
+
+                    <img
+                      src={DIALECT_ICONS[ds.dialect_key]}
+                      alt={ds.dialect_key}
+                      className="size-10"
+                    />
+                  ) : (
+                    <span className="text-xs text-gray-500">?</span>
+                  )}
                 </span>
                 <div className="truncate">
                   <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-50">
-                    {user.name}
+                    {ds.name}
                   </p>
-                  <p className="truncate text-xs text-gray-500">{user.email}</p>
+                  <p className="truncate text-xs text-gray-500">{ds.host}:{ds.port}</p>
+                  <p className="truncate text-xs text-gray-500">{ds.dialect_name}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {user.role === "admin" ? (
-                  <Tooltip
-                    content="A workspace must have at least one admin"
-                    className="max-w-44 text-xs"
-                    sideOffset={5}
-                    triggerAsChild={true}
-                  >
-                    <div>
-                      <Select
-                        defaultValue={user.role}
-                        disabled={user.role === "admin"}
-                      >
-                        <SelectTrigger className="h-8 w-32">
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent align="end">
-                          {roles.map((role) => (
-                            <SelectItem
-                              key={role.value}
-                              value={role.value}
-                              disabled={role.value === "admin"}
-                            >
-                              {role.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </Tooltip>
-                ) : (
-                  <Select
-                    defaultValue={user.role}
-                    disabled={user.role === "admin"}
-                  >
-                    <SelectTrigger className="h-8 w-32">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent align="end">
-                      {roles.map((role) => (
-                        <SelectItem
-                          key={role.value}
-                          value={role.value}
-                          disabled={role.value === "admin"}
-                        >
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={setEnabled}
+                    disabled={ds.is_active === "true"}
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {enabled ? "On" : "Off"}
+                  </span>
+                </div>
+
+
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -132,12 +173,16 @@ export default function Users() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-36">
-                    <DropdownMenuItem disabled={user.role === "admin"}>
+                    <DropdownMenuItem disabled={ds.id === "admin"}>
                       View details
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-red-600 dark:text-red-500"
-                      disabled={user.role === "admin"}
+                      onClick={() => {
+                          if (confirm("Are you sure you want to delete this data source?")) {
+                            deleteDataSource(ds.id)
+                          }
+                        }}
                     >
                       Delete
                     </DropdownMenuItem>

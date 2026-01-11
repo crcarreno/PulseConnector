@@ -313,6 +313,7 @@ class SQLiteStorage:
                        ds.name,
                        ds.dialect_id,
                        d.key AS dialect_key,
+                       d.name AS dialect_name,
                        ds.host,
                        ds.port,
                        ds.username,

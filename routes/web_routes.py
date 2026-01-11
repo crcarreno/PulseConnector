@@ -67,7 +67,6 @@ def list_data_sources_endpoint():
         "count": len(data_sources)
     }
 
-
 @app.post("/admin/data-sources")
 def create_data_source_endpoint():
     data = request.get_json(silent=True)

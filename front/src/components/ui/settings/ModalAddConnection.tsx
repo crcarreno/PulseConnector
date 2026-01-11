@@ -20,173 +20,169 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Select"
-//import { dialects } from "@/data/data"
 import { useEffect, useState } from "react"
+import { useAppToast } from "@/components/Toast"
 
+
+// -------------------- TYPES --------------------
 type Dialect = {
-  value: string
-  label: string
+  id: string
+  name: string
 }
 
+// -------------------- HOOK --------------------
 export function useDialects() {
-
   const [dialects, setDialects] = useState<Dialect[]>([])
   const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-      fetch("https://localhost:5000/admin/dialects")
-        .then(res => res.json())
-        .then(data => {
-          console.log("API response:", data)
-          setDialects(data.items)
-        })
-        .catch(err => {
-          console.error("Fetch error:", err)
-        })
-        .finally(() => setLoading(false))
-    }, [])
+  useEffect(() => {
+    fetch("https://localhost:5000/admin/dialects")
+      .then(res => res.json())
+      .then(data => setDialects(data.items ?? []))
+      .catch(err => console.error("Fetch error:", err))
+      .finally(() => setLoading(false))
+  }, [])
 
   return { dialects, loading }
 }
 
-export type ModalAddConnectionProps = {
+type ModalAddConnectionProps = {
   children: React.ReactNode
+  onSuccess?: () => void
 }
 
-export function ModalAddConnection({ children }: ModalAddConnectionProps) {
-  const { dialects, loading } = useDialects()
+// -------------------- COMPONENT --------------------
+export function ModalAddConnection({children, onSuccess,}: ModalAddConnectionProps) {
+  const { dialects, loading: dialectsLoading } = useDialects()
 
+  const [submitting, setSubmitting] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const [name, setName] = useState("")
+  const [host, setHost] = useState("")
+  const [port, setPort] = useState("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [databaseName, setDatabaseName] = useState("")
+  const [dialectId, setDialectId] = useState<string | null>(null)
+
+  const { showToast } = useAppToast()
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (!dialectId) return alert("Select a database engine")
+
+    setSubmitting(true)
+
+    const payload = {
+      name,
+      host,
+      port: Number(port),
+      username,
+      password,
+      database_name: databaseName,
+      dialect_id: dialectId,
+      is_active: true,
+    }
+
+    console.log(payload)
+
+    try {
+      const res = await fetch("https://localhost:5000/admin/data-sources", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) throw new Error(await res.text())
+
+        showToast({
+          title: "Connection created",
+          description: "Saved successfully",
+        })
+
+      onSuccess?.()
+      setOpen(false)
+    } catch (err) {
+      console.error("Create error", err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
+
       <DialogContent className="sm:max-w-lg">
-        <form>
+        <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Add different database engine connections</DialogTitle>
-            <DialogDescription className="mt-1 text-sm leading-6">
-              Add database connections
-            </DialogDescription>
+            <DialogDescription>Add database connections</DialogDescription>
 
             <div className="mt-4">
-              <Label htmlFor="dialect-new-connection" className="font-medium">
-                Select database
-              </Label>
-                <Select onValueChange={value => null}>
-                  <SelectTrigger
-                    id="dialect-new-connection"
-                    name="dialect-new-connection"
-                    className="mt-2"
-                  >
-                    <SelectValue placeholder="Select database..." />
-                  </SelectTrigger>
-
-                  <SelectContent>
-                    {loading && (
-                      <SelectItem value="loading" disabled>
-                        Loading...
-                      </SelectItem>
-                    )}
-
-                    {dialects.map(dialect => (
-                      <SelectItem
-                        key={dialect.id}
-                        value={dialect.id}
-                      >
-                        {dialect.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
+              <Label>Name connection</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} />
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="ip-connection" className="font-medium">
-                IP Address
-              </Label>
-              <Input
-                id="ip-connection"
-                name="ip-connection"
-                placeholder="0.0.0.0"
-                className="mt-2"
-              />
+              <Label>Select database</Label>
+              <Select value={dialectId} onValueChange={setDialectId}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select database..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {dialectsLoading && (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  )}
+                  {dialects.map(d => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="port-connection" className="font-medium">
-                Port
-              </Label>
-              <Input
-                id="port-connection"
-                name="port-connection"
-                placeholder="5443"
-                className="mt-2"
-              />
+              <Label>Host</Label>
+              <Input value={host} onChange={e => setHost(e.target.value)} />
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="user-connection" className="font-medium">
-                User
-              </Label>
-              <Input
-                id="user-connection"
-                name="user-connection"
-                placeholder="User connection.."
-                className="mt-2"
-              />
+              <Label>Port</Label>
+              <Input value={port} onChange={e => setPort(e.target.value)} />
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="pass-connection" className="font-medium">
-                Password
-              </Label>
-              <Input
-                id="pass-connection"
-                name="pass-connection"
-                placeholder="Pass connection.."
-                className="mt-2"
-              />
+              <Label>User</Label>
+              <Input value={username} onChange={e => setUsername(e.target.value)} />
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="database-connection" className="font-medium">
-                Database
-              </Label>
-              <Input
-                id="database-connection"
-                name="database-connection"
-                placeholder="Database connection.."
-                className="mt-2"
-              />
+              <Label>Password</Label>
+              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+
+            <div className="mt-4">
+              <Label>Database</Label>
+              <Input value={databaseName} onChange={e => setDatabaseName(e.target.value)} />
             </div>
           </DialogHeader>
-          <DialogFooter className="mt-6">
 
+          <DialogFooter className="mt-6">
             <DialogClose asChild>
-              <Button
-                className="mt-2 w-full sm:mt-0 sm:w-fit"
-                variant="secondary"
-              >
+              <Button type="button" variant="secondary">
                 Go back
               </Button>
             </DialogClose>
 
-            <DialogClose asChild>
-              <Button
-                className="mt-2 w-full sm:mt-0 sm:w-fit"
-                variant="warning"
-              >
-                Test Connection
-              </Button>
-            </DialogClose>
-
-            <DialogClose asChild>
-              <Button type="submit" className="w-full sm:w-fit">
-                Add user
-              </Button>
-            </DialogClose>
-
+            <Button type="submit" disabled={submitting} variant="warning">
+              {submitting ? "Creating..." : "Add connection"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
