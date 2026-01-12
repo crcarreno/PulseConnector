@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     user TEXT PRIMARY KEY,
     display_name TEXT,
     password_hash TEXT NOT NULL,
+    mail TEXT,
     active INTEGER NOT NULL DEFAULT 1
 );
 

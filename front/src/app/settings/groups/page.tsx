@@ -1,4 +1,6 @@
 "use client"
+
+import { useEffect, useState } from "react"
 import { Button } from "@/components/Button"
 import { Card } from "@/components/Card"
 import { Checkbox } from "@/components/Checkbox"
@@ -12,11 +14,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/Select"
+import { Switch } from "@/components/Switch"
 import { RiExternalLinkLine } from "@remixicon/react"
 
-import { roles } from "@/data/data"
+export function useDataGroups() {
 
-export default function Groups() {
+  const [groups, setDataGroups] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // GET lista
+  const fetchData = async () => {
+
+    setLoading(true)
+
+    try {
+      const res = await fetch("https://localhost:5000/admin/groups")
+      const data = await res.json()
+      setDataGroups(data ?? [])
+    } catch (err) {
+      console.error("Fetch error:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  return {
+    groups,
+    loading,
+    refetch: fetchData
+  }
+}
+
+export default function Users() {
+
+    const { groups, loading, refetch } = useDataGroups()
+    const [enabled, setEnabled] = useState(groups.is_active)
+
+    if (loading) return <p>Loading...</p>
+
   return (
     <>
       <div className="space-y-10">
@@ -28,41 +67,41 @@ export default function Groups() {
                   id="personal-information"
                   className="scroll-mt-10 font-semibold text-gray-900 dark:text-gray-50"
                 >
-                  Personal information
+                  Create group
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-gray-500">
-                  Manage your personal information and role.
+                  Manage and create groups.
                 </p>
               </div>
               <div className="md:col-span-2">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-6">
                   <div className="col-span-full sm:col-span-3">
-                    <Label htmlFor="first-name" className="font-medium">
-                      First name
+                    <Label htmlFor="group_name" className="font-medium">
+                      Group name
                     </Label>
                     <Input
                       type="text"
-                      id="first-name"
-                      name="first-name"
+                      id="group_name"
+                      name="group_name"
                       autoComplete="given-name"
-                      placeholder="Emma"
+                      placeholder="admin"
                       className="mt-2"
                     />
                   </div>
                   <div className="col-span-full sm:col-span-3">
-                    <Label htmlFor="last-name" className="font-medium">
-                      Last name
+                    <Label htmlFor="display_name" className="font-medium">
+                      Description
                     </Label>
                     <Input
                       type="text"
-                      id="last-name"
-                      name="last-name"
+                      id="display_name"
+                      name="display_name"
                       autoComplete="family-name"
-                      placeholder="Stone"
+                      placeholder="Public"
                       className="mt-2"
                     />
                   </div>
-                  <div className="col-span-full">
+                  <div className="col-span-full sm:col-span-3">
                     <Label htmlFor="email" className="font-medium">
                       Email
                     </Label>
@@ -70,52 +109,19 @@ export default function Groups() {
                       type="email"
                       id="email"
                       name="email"
-                      autoComplete="email"
-                      placeholder="emma@acme.com"
+                      autoComplete="family-name"
+                      placeholder="admin@mail.com"
                       className="mt-2"
-                    />
-                  </div>
-                  <div className="col-span-full sm:col-span-3">
-                    <Label htmlFor="year" className="font-medium">
-                      Birth year
-                    </Label>
-                    <Input
-                      autoComplete="off"
-                      id="birthyear"
-                      name="year"
-                      type="number"
-                      placeholder="1994"
-                      enableStepper={false}
-                      className="mt-2"
-                      min="1900"
-                      max={new Date().getFullYear()}
-                      step="1"
                     />
                   </div>
                   <div className="col-span-full sm:col-span-3">
                     <Label htmlFor="email" className="font-medium">
                       Role
                     </Label>
-                    <Select defaultValue="member">
-                      <SelectTrigger
-                        name="role"
-                        id="role"
-                        className="mt-2"
-                        disabled
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((role) => (
-                          <SelectItem key={role.value} value={role.value}>
-                            {role.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="mt-2 text-xs text-gray-500">
-                      Roles can only be changed by system admin.
-                    </p>
+                    <Switch
+                    checked={enabled}
+                    onCheckedChange={setEnabled}
+                    />
                   </div>
                   <div className="col-span-full mt-6 flex justify-end">
                     <Button type="submit">Save settings</Button>
@@ -125,7 +131,86 @@ export default function Groups() {
             </div>
           </form>
         </section>
+
         <Divider />
+
+        <section aria-labelledby="existing-users">
+        <ul
+          role="list"
+          className="mt-6 divide-y divide-gray-200 dark:divide-gray-800"
+        >
+
+          {groups.map((group) => (
+            <li
+              key={group.id}
+              className="flex items-center justify-between gap-x-6 py-2.5"
+            >
+              <div className="flex items-center gap-x-4 truncate">
+                <span
+                  className="hidden size-16 shrink-0 items-center justify-center rounded-full border border-gray-300 bg-white text-xs text-gray-700 sm:flex dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                  aria-hidden="true"
+                >
+                    <span className="text-xs text-gray-500">?</span>
+
+                </span>
+                <div className="truncate">
+                  <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-50">
+                    {group.name}
+                  </p>
+                  <p className="truncate text-xs text-gray-500">{group.group_name}</p>
+                  <p className="truncate text-xs text-gray-500">{group.display_name}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={enabled}
+                    onCheckedChange={setEnabled}
+                    disabled={group.is_active === "true"}
+                  />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {enabled ? "On" : "Off"}
+                  </span>
+                </div>
+
+                {/*<DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="group size-8 hover:border hover:border-gray-300 hover:bg-gray-50 data-[state=open]:border-gray-300 data-[state=open]:bg-gray-50 hover:dark:border-gray-700 hover:dark:bg-gray-900 data-[state=open]:dark:border-gray-700 data-[state=open]:dark:bg-gray-900"
+                    >
+                      <RiMore2Fill
+                        className="size-4 shrink-0 text-gray-500 group-hover:text-gray-700 group-hover:dark:text-gray-400"
+                        aria-hidden="true"
+                      />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-36">
+                    <DropdownMenuItem disabled={ds.id === "admin"}>
+                      View details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-red-600 dark:text-red-500"
+                      onClick={() => {
+                          if (confirm("Are you sure you want to delete this user?")) {
+                            deleteDataSource(group.id)
+                          }
+                        }}
+                    >
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>*/}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+        <Divider />
+
         <section aria-labelledby="notification-settings">
           <form>
             <div className="grid grid-cols-1 gap-x-14 gap-y-8 md:grid-cols-3">
@@ -134,7 +219,7 @@ export default function Groups() {
                   id="notification-settings"
                   className="scroll-mt-10 font-semibold text-gray-900 dark:text-gray-50"
                 >
-                  Notification settings
+                  Database connections
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-gray-500">
                   Configure the types of notifications you want to receive.

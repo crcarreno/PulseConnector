@@ -34,6 +34,7 @@ export async function deleteDS(id: string) {
 }
 
 export function useDataSources() {
+
   const [datasource, setDataSources] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -74,8 +75,8 @@ export function useDataSources() {
 
 export default function Connections() {
 
-    const { datasource, loading, deleteDataSource, refetch } = useDataSources()
-    const [enabled, setEnabled] = useState(datasource.is_active)
+const { datasource, loading, deleteDataSource, refetch } = useDataSources()
+const [enabled, setEnabled] = useState(datasource.is_active)
 
   if (loading) return <p>Loading...</p>
 
@@ -110,6 +111,7 @@ export default function Connections() {
             </Button>
           </ModalAddConnection>
         </div>
+
         <ul
           role="list"
           className="mt-6 divide-y divide-gray-200 dark:divide-gray-800"

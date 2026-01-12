@@ -39,39 +39,6 @@ def generate_ca():
         log.error("Error: {}".format(e))
         raise e
 
-'''
-def generate_server_cert(ca_key, ca_cert, hostname="localhost"):
-    try:
-        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-
-        subject = x509.Name([
-            x509.NameAttribute(NameOID.COMMON_NAME, hostname),
-        ])
-
-        cert = (
-            x509.CertificateBuilder()
-            .subject_name(subject)
-            .issuer_name(ca_cert.subject)
-            .public_key(key.public_key())
-            .serial_number(x509.random_serial_number())
-            .not_valid_before(datetime.utcnow())
-            .not_valid_after(datetime.utcnow() + timedelta(days=825))
-            .add_extension(
-                x509.SubjectAlternativeName([
-                    x509.DNSName(hostname),
-                    x509.DNSName("127.0.0.1"),
-                ]),
-                critical=False,
-            )
-            .sign(ca_key, hashes.SHA256())
-        )
-
-        return key, cert
-
-    except Exception as e:
-        log.error("Error: {}".format(e))
-        raise e
-'''
 
 def generate_server_cert(ca_key, ca_cert, hostname="localhost"):
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
