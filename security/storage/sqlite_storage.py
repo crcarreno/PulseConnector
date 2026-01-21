@@ -31,12 +31,12 @@ class SQLiteStorage:
                                                  ON pa.permission_uid = p.uid
                                       LEFT JOIN group_users gu
                                                 ON p.by_type = 'group'
-                                                    AND gu.group_name = p.target
+                                                    -- AND gu.group_name = p.target
                              WHERE p.active = 1
-                               AND (
-                                 (p.by_type = 'user' AND p.target = ?)
-                                     OR (p.by_type = 'group' AND gu.user = ?)
-                                 )
+                               --AND (
+                                 --(p.by_type = 'user' AND p.target = ?)
+                                     --OR (p.by_type = 'group' AND gu.user = ?)
+                                 --)
                              """, (username, username)).fetchall()
 
             perms = {}
@@ -188,10 +188,10 @@ class SQLiteStorage:
         with self._conn() as c:
             c.execute("""
                 INSERT INTO endpoints
-                (name, dialect, database_name, type, source, namespace, primary_key)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                (name, id_connection, type, source, namespace, primary_key)
+                VALUES (?, ?, ?, ?, ?, ?)
             """, (
-                ep["name"], ep["dialect"], ep["database"],
+                ep["name"], ep["id_connection"],
                 ep["type"], ep["source"], ep["namespace"],
                 ep.get("primary_key", "")
             ))
@@ -218,25 +218,105 @@ class SQLiteStorage:
 
     def list_permissions(self):
         with self._conn() as c:
-            return c.execute("SELECT * FROM permissions").fetchall()
+            rows = c.execute("""
+                             SELECT p.uid AS permission_uid,
+                                    p.active,
+                                    ps.subject_type,
+                                    ps.subject_id,
+                                    pa.endpoint_name,
+                                    pa.action
+                             FROM permissions p
+                                      LEFT JOIN permission_subjects ps
+                                                ON ps.permission_uid = p.uid
+                                      LEFT JOIN permission_actions pa
+                                                ON pa.permission_uid = p.uid
+                             ORDER BY p.uid
+                             """).fetchall()
 
+            permissions = {}
 
-    def grant_permission(self, by_type, target, endpoints):
+            for row in rows:
+                pid = row["permission_uid"]
+
+                if pid not in permissions:
+                    permissions[pid] = {
+                        "uid": pid,
+                        "active": bool(row["active"]),
+                        "subjects": [],
+                        "endpoints": {}
+                    }
+
+                # sujetos
+                if row["subject_type"] and row["subject_id"]:
+                    subj = {
+                        "type": row["subject_type"],
+                        "id": row["subject_id"]
+                    }
+                    if subj not in permissions[pid]["subjects"]:
+                        permissions[pid]["subjects"].append(subj)
+
+                # endpoints + acciones
+                if row["endpoint_name"] and row["action"]:
+                    ep = permissions[pid]["endpoints"].setdefault(
+                        row["endpoint_name"], []
+                    )
+                    if row["action"] not in ep:
+                        ep.append(row["action"])
+
+            # normalizar endpoints
+            for perm in permissions.values():
+                perm["endpoints"] = [
+                    {"name": name, "actions": actions}
+                    for name, actions in perm["endpoints"].items()
+                ]
+
+            return list(permissions.values())
+
+    def grant_permission(self, subjects, endpoints):
+        """
+        subjects = [
+            {"type": "user", "id": "user1"},
+            {"type": "group", "id": "admins"}
+        ]
+
+        endpoints = [
+            {"name": "get_data_orders", "actions": ["read", "write"]}
+        ]
+        """
         with self._conn() as c:
+            # 1️⃣ crear la regla
             cur = c.execute("""
-                INSERT INTO permissions (by_type, target)
-                VALUES (?, ?)
-            """, (by_type, target))
-            uid = cur.lastrowid
+                            INSERT INTO permissions (active)
+                            VALUES (1)
+                            """)
+            permission_uid = cur.lastrowid
 
+            # 2️⃣ asignar sujetos
+            for subject in subjects:
+                c.execute("""
+                          INSERT INTO permission_subjects
+                              (permission_uid, subject_type, subject_id)
+                          VALUES (?, ?, ?)
+                          """, (
+                              permission_uid,
+                              subject["type"],
+                              subject["id"]
+                          ))
+
+            # 3️⃣ asignar endpoints + acciones
             for ep in endpoints:
                 for action in ep["actions"]:
                     c.execute("""
-                        INSERT INTO permission_actions
-                        (permission_uid, endpoint_name, action)
-                        VALUES (?, ?, ?)
-                    """, (uid, ep["name"], action))
-            return uid
+                              INSERT INTO permission_actions
+                                  (permission_uid, endpoint_name, action)
+                              VALUES (?, ?, ?)
+                              """, (
+                                  permission_uid,
+                                  ep["name"],
+                                  action
+                              ))
+
+            return permission_uid
 
 
     def disable_permission(self, uid):
@@ -320,7 +400,7 @@ class SQLiteStorage:
                        ds.database_name,
                        ds.is_active
                 FROM data_sources ds
-                INNER JOIN dialects d ON d.id = ds.dialect_id
+                JOIN dialects d ON d.id = ds.dialect_id
                 """
             ).fetchall()
             return [dict(r) for r in rows]
@@ -328,7 +408,17 @@ class SQLiteStorage:
     def get_data_source(self, data_source_id):
         with self._conn() as c:
             row = c.execute(
-                "SELECT * FROM data_sources WHERE id = ?",
+                """SELECT 
+                        ds.name,
+                        ds.host,
+                        ds.port,
+                        ds.username,
+                        ds.password,
+                        ds.database_name,
+                        d.key AS dialect
+                        FROM data_sources ds 
+                        JOIN dialects d ON d.id = ds.dialect_id
+                        WHERE ds.id = ? """,
                 (data_source_id,)
             ).fetchone()
             if not row:
@@ -380,3 +470,13 @@ class SQLiteStorage:
                 (data_source_id,)
             )
             return cur.rowcount > 0
+
+
+    # ---------- OBJECTS ----------
+
+    def list_objects(self):
+        with self._conn() as c:
+            rows = c.execute(
+                "select object, display_name, active from db_objects where active > 0"
+            ).fetchall()
+            return [dict(r) for r in rows]

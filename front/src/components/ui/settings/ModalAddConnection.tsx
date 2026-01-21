@@ -35,6 +35,8 @@ export function useDialects() {
   const [dialects, setDialects] = useState<Dialect[]>([])
   const [loading, setLoading] = useState(true)
 
+console.log("test")
+
   useEffect(() => {
     fetch("https://localhost:5000/admin/dialects")
       .then(res => res.json())

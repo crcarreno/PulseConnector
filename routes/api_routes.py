@@ -60,7 +60,7 @@ def can_access(username, endpoint_name, action):
     return action in USER_PERMISSIONS.get(username, {}).get(endpoint_name, set())
 
 
-build_permission_cache(iam)
+#build_permission_cache(iam)
 
 ENDPOINT_BY_NAMESPACE = {}
 

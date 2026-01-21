@@ -1,5 +1,37 @@
 PRAGMA foreign_keys = ON;
 
+
+-- DIALECTS
+CREATE TABLE IF NOT EXISTS dialects (
+    id UUID PRIMARY KEY,
+    key VARCHAR(30) UNIQUE NOT NULL,        -- mysql | postgres | mssql | sqlite
+    name VARCHAR(50) NOT NULL,               -- MySQL, PostgreSQL, SQL Server, SQLite
+    supported_versions VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- CONNECTIONS
+CREATE TABLE IF NOT EXISTS data_sources (
+    id UUID PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    dialect_id UUID NOT NULL,
+    host VARCHAR(255) NOT NULL,
+    port INTEGER NOT NULL,
+    username VARCHAR(100) NOT NULL,
+    password TEXT NOT NULL,
+    database_name VARCHAR(100) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_dialect
+        FOREIGN KEY (dialect_id)
+        REFERENCES dialects(id)
+        ON DELETE RESTRICT
+);
+
 -- USERS
 CREATE TABLE IF NOT EXISTS users (
     user TEXT PRIMARY KEY,
@@ -28,72 +60,92 @@ CREATE TABLE IF NOT EXISTS group_users (
 -- ENDPOINTS
 CREATE TABLE IF NOT EXISTS endpoints (
     name TEXT PRIMARY KEY,
-    dialect TEXT,
-    database_name TEXT,
+    id_connection UUID NOT NULL,
+    --dialect TEXT,
+    --database_name TEXT,
     type TEXT,
     source TEXT,
     namespace TEXT,
-    primary_key TEXT
+    primary_key TEXT,
+    FOREIGN KEY (id_connection) REFERENCES data_sources(id) ON DELETE CASCADE
 );
 
 -- PERMISSIONS
 CREATE TABLE IF NOT EXISTS permissions (
     uid INTEGER PRIMARY KEY AUTOINCREMENT,
-    by_type TEXT CHECK(by_type IN ('user','group')),
-    target TEXT,
-    active INTEGER NOT NULL DEFAULT 1
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
--- PERMISSION ENDPOINT ACTIONS
+-- PERMISSIONS SUBJECTS
+CREATE TABLE IF NOT EXISTS permission_subjects (
+    permission_uid INTEGER NOT NULL,
+    subject_type TEXT NOT NULL CHECK(subject_type IN ('user','group')),
+    subject_id TEXT NOT NULL,
+
+    PRIMARY KEY (permission_uid, subject_type, subject_id),
+    FOREIGN KEY (permission_uid)
+        REFERENCES permissions(uid)
+        ON DELETE CASCADE
+);
+
+-- PERMISSIONS ACTIONS
 CREATE TABLE IF NOT EXISTS permission_actions (
+    permission_uid INTEGER NOT NULL,
+    endpoint_name TEXT NOT NULL,
+    action TEXT NOT NULL,
+
+    PRIMARY KEY (permission_uid, endpoint_name, action),
+    FOREIGN KEY (permission_uid)
+        REFERENCES permissions(uid)
+        ON DELETE CASCADE,
+    FOREIGN KEY (endpoint_name)
+        REFERENCES endpoints(name)
+        ON DELETE CASCADE
+);
+
+
+/*CREATE TABLE IF NOT EXISTS permissions (
+    uid INTEGER PRIMARY KEY AUTOINCREMENT,
+    by_type TEXT CHECK(by_type IN ('user','group')),
+    id_user TEXT,
+    id_group TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (id_user) REFERENCES users(user),
+    FOREIGN KEY (id_group) REFERENCES groups(group_name)
+);*/
+
+-- PERMISSION ENDPOINT ACTIONS
+/*CREATE TABLE IF NOT EXISTS permission_actions (
     permission_uid INTEGER,
     endpoint_name TEXT,
     action TEXT,
     PRIMARY KEY (permission_uid, endpoint_name, action),
     FOREIGN KEY (permission_uid) REFERENCES permissions(uid) ON DELETE CASCADE,
     FOREIGN KEY (endpoint_name) REFERENCES endpoints(name) ON DELETE CASCADE
+);*/
+
+-- OBJECTS
+CREATE TABLE IF NOT EXISTS db_objects (
+    object TEXT,
+    display_name TEXT,
+    active INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_db_objects_object
+ON db_objects("object");
 
--- DIALECTS
-CREATE TABLE IF NOT EXISTS dialects (
-    id UUID PRIMARY KEY,
-    key VARCHAR(30) UNIQUE NOT NULL,        -- mysql | postgres | mssql | sqlite
-    name VARCHAR(50) NOT NULL,               -- MySQL, PostgreSQL, SQL Server, SQLite
+INSERT INTO db_objects ("object", display_name, active)
+VALUES
+('table', 'Tables', 1),
+('view', 'Views', 1),
+('sp', 'Store procedures', 1),
+('function', 'Functions', 0),
+('query', 'Queries', 0)
+ON CONFLICT("object") DO UPDATE SET
+  display_name = excluded.display_name,
+  active = excluded.active;
 
-    supported_versions VARCHAR(100) NOT NULL,
-    -- Ej: ">=5.7", ">=12", ">=2017", ">=3.35"
-
-    is_active BOOLEAN DEFAULT TRUE,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
--- CONNECTIONS
-CREATE TABLE IF NOT EXISTS data_sources (
-    id UUID PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-
-    dialect_id UUID NOT NULL,
-
-    host VARCHAR(255) NOT NULL,
-    port INTEGER NOT NULL,
-    username VARCHAR(100) NOT NULL,
-    password TEXT NOT NULL,
-    database_name VARCHAR(100) NOT NULL,
-
-    is_active BOOLEAN DEFAULT TRUE,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_dialect
-        FOREIGN KEY (dialect_id)
-        REFERENCES dialects(id)
-        ON DELETE RESTRICT
-);
 
 INSERT INTO dialects (
     id,

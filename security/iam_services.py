@@ -81,10 +81,23 @@ class IAMService:
 
     # PERMISSIONS
     def list_permissions(self):
-        return [dict(p) for p in self.db.list_permissions()]
+        # ya viene estructurado desde db
+        return self.db.list_permissions()
 
-    def grant_permission(self, by, target, endpoints):
-        return self.db.grant_permission(by, target, endpoints)
+    def grant_permission(self, subjects, endpoints):
+        """
+        subjects = [
+            {"type": "user", "id": "user1"},
+            {"type": "group", "id": "admins"}
+        ]
+        """
+        if not subjects:
+            raise ValueError("At least one subject is required")
+
+        if not endpoints:
+            raise ValueError("At least one endpoint is required")
+
+        return self.db.grant_permission(subjects, endpoints)
 
     def disable_permission(self, uid):
         self.db.disable_permission(uid)
@@ -98,3 +111,8 @@ class IAMService:
 
     def enable_disable_permission(self, uid, action):
         self.db.enable_disable_permission(uid, action)
+
+
+    # OBJECTS
+    def list_objects(self):
+        return [dict(o) for o in self.db.list_objects()]

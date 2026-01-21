@@ -1,10 +1,14 @@
 from uuid import uuid4
 
+from db import DB
+from db_pool import PostgresAdapter
 from routes.api_routes import app
 from flask import render_template, request, abort
 from security.iam_services import IAMService
 from security.config_services import ConfigServices
 from security.password_hasher import PasswordHasher
+from security.storage.schemas import SchemaExtractorFactory
+
 
 iam = IAMService()
 conf = ConfigServices()
@@ -21,7 +25,55 @@ def index():
 
 
 
-# ------------- Config ---------------
+# ------------- Objects ---------------
+@app.get("/admin/objects")
+def list_objects():
+    return iam.list_objects(), 200
+
+
+@app.post("/admin/schema/objects")
+def list_schema_objects_endpoint():
+
+    data = request.get_json(silent=True)
+
+    if not data:
+        abort(400, description="Request body is required")
+
+    connection_id = data.get("connection_id")
+    object_type = data.get("object_type")
+
+    if not connection_id or not object_type:
+        return {
+            "error": "db_type, object_type and connection_id are required"
+        }, 400
+
+    conf_connection = conf.get_data_source(connection_id)
+
+    if conf_connection is None:
+        return {
+            "error": "Connection not found"
+        }, 404
+
+    extractor = SchemaExtractorFactory.create(conf_connection)
+
+    if object_type == "table":
+        items = extractor.get_tables()
+    elif object_type == "view":
+        items = extractor.get_views()
+    elif object_type in ("sp", "stored_procedure"):
+        items = extractor.get_stored_procedures()
+    else:
+        return {
+            "error": f"Unsupported object type: {object_type}"
+        }, 400
+
+    return {
+        "items": items,
+        "count": len("items")
+    }
+
+
+
 # ------------- Dialects -------------
 @app.get("/admin/dialects")
 def list_dialects_endpoint():
@@ -299,8 +351,7 @@ def create_endpoint_endpoint():
 
     iam.register_endpoint({
         "name": data["name"],
-        "dialect": data["dialect"],
-        "database": data["database"],
+        "id_connection": data["id_connection"],
         "type": data["type"],
         "source": data["source"],
         "namespace": data["namespace"],
@@ -346,12 +397,12 @@ def create_permission():
     data = request.json
 
     uid = iam.grant_permission(
-        by=data["by"],                 # 'user' | 'group'
-        target=data["target"],         # user o group
-        endpoints=data["endpoints"]    # lista de endpoints + actions
+        subjects=data["subjects"],      # users / groups
+        endpoints=data["endpoints"]     # endpoints + actions
     )
 
     return {"status": "created", "uid": uid}, 201
+
 
 # Permissions list
 @app.get("/admin/permissions")
