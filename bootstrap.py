@@ -3,7 +3,7 @@ from analytics.logger import setup_logger
 from security.password_hasher import PasswordHasher
 from security.iam_services import IAMService
 from security.config_services import load_config
-from certs.admin_certs import generate_ca, generate_server_cert, save_pem
+from security.certs.admin_certs import generate_ca, generate_server_cert, save_pem
 
 log = setup_logger()
 
