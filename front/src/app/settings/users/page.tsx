@@ -30,10 +30,13 @@ export function useDataUsers() {
 
     try {
 
-      const res = await fetch("https://localhost:5000/admin/users")
+      const res = await fetch("https://localhost:5000/api/admin/users")
       const data = await res.json()
-      setUsers(data ?? [])
-console.log(data)
+
+      setUsers(data.data ?? [])
+
+      console.log(data)
+
     } catch (err) {
       console.error("Fetch error:", err)
     } finally {

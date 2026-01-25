@@ -11,6 +11,8 @@
 
 # Features
 
+![capture2.png](images/screenshots/capture8.png)
+
 ![capture2.png](images/screenshots/capture2.png)
 
 - Fast access to MSSQL, MySQL/MariaDB, PotgreSQL and other databases without writing additional code.
@@ -42,50 +44,69 @@
 ![arquitecture.png](images/network_architecture.png)
 
 ---
-# New Features
+# Features
 
-*January 2, 2026*
-- System-Native Logging
-  - Linux: syslog / journald
-  - Windows: Event Viewer
-- Structured Error Tracking
-- Performance & Privacy First
-- Anonymous Usage Analytics
-- Self-Cleaning Telemetry State
+PulseConnector is a lightweight, configuration-driven API gateway and permission engine designed to centralize authentication, authorization, and data access. It provides a unified OData-style interface for backend services, enabling fine-grained access control and dynamic endpoint management without hardcoding business rules into the application.
 
-*December 22, 2025*
-- Replaced ORM-based persistence with a custom SQL-based Data Access Layer to improve concurrency and performance
-- Implemented native DB drivers with explicit pooling for high-load API scenarios
-- Removed ORM overhead to achieve predictable latency under concurrent load
+## ✨ Key Features — PulseConnector
 
-*December 19, 2025*
-- Basic Authentication Support
-- Stateless API Architecture
-- JWT-Based Authentication (Bearer Tokens)
-- Token Expiration Handling
-- Secure Token Signing
-- Protected OData Endpoints
-- Centralized Request Logging
+- **JWT-based Authentication**
+  - Secure token-based authentication for all protected routes.
+  - Centralized identity handling across the API.
 
-*December 18, 2025*
-- Integrated HTTPS Proxy for remote connections
-- Incorporate SSL / TLS Certificate
+- **Fine-Grained Authorization Engine**
+  - Permission checks based on:
+    - user / subject
+    - namespace
+    - endpoint
+    - action (`read`, `write`, etc.)
+  - Fully decoupled from route implementation.
 
-*December 16, 2025*
-- Compatibility with linux/windows x64
-- Package installation with embed libraries
+- **Dynamic Permission Configuration**
+  - Permissions are configuration-driven, not hardcoded.
+  - Endpoints and actions can be enabled/disabled without code changes.
+  - Designed to scale as new services and resources are added.
 
-*December 13, 2025*
-- Waitress server implementation
-- Independent server thread
-- Thread control
-- High-demand feature configuration for threads
-- High-demand feature configuration for odata
+- **Generic OData-style API**
+  - Single dynamic endpoint:
+    ```
+    /api/odata/<namespace>/<endpoint>
+    ```
+  - Endpoint resolution via internal configuration mapping.
+  - Supports OData-like query parameters:
+    - `$select`
+    - `$top`
+    - `$filter` (extensible)
 
-*November 29, 2025*
-- ODATA allows data entry via JSON
-- ODATA allows partial or complete updates of records via JSON.
-- The configuration has a separate screen.
+- **Modular Flask Architecture**
+  - Clean separation using Flask Blueprints.
+  - Logical grouping of:
+    - admin routes
+    - api routes
+    - odata endpoints
+  - Production-ready structure.
+
+- **SQLite Configuration Store**
+  - SQLite used as a lightweight configuration database.
+  - Stores users, permissions, endpoints, and metadata.
+  - No external services required to boot the system.
+
+- **Admin API**
+  - Dedicated admin endpoints for:
+    - permissions
+    - users
+    - endpoint access
+  - Designed for internal management and tooling.
+
+- **Frontend-Friendly Design**
+  - JSON responses optimized for dynamic UIs (React, data grids).
+  - Column rendering and permissions resolved at runtime.
+  - Ideal for generic admin dashboards.
+
+- **Production-Oriented Development Flow**
+  - Compatible with WSGI servers (e.g. Waitress).
+  - Development setup aligned with production architecture.
+
 
 ---
 ## Configuration (`config.json`)
@@ -94,38 +115,6 @@ Example configuration file:
 
 ```json
 {
-    "ssh": {
-        "enabled": true,
-        "vps_host": "0.0.0.0",
-        "vps_user": "user",
-        "vps_pass": "root",
-        "remote_db_port": 3306,
-        "local_bind_port": 5001
-    },
-    "db_mysql": {
-        "dialect": "mysql",
-        "host": "127.0.0.1",
-        "port": 3306,
-        "user": "root",
-        "pass": "root",
-        "database": "northwind"
-    },
-    "db_postgres": {
-        "dialect": "postgres",
-        "host": "127.0.0.1",
-        "port": 5432,
-        "user": "postgres",
-        "pass": "postgres",
-        "database": "postgres"
-    },
-    "db_mssql": {
-        "dialect": "mssql",
-        "host": "127.0.0.1",
-        "port": 1433,
-        "user": "sa",
-        "pass": "admin.1234",
-        "database": "dbTest"
-    },
     "server": {
         "host": "127.0.0.1",
         "port": 5000,
@@ -146,30 +135,6 @@ Example configuration file:
     "active_dialect": "mssql"
 }
 ```
----
-
-## Main Components
-
-- JsonEditor: Visual editor of config.json with an expanded, editable tree structure.
-- SshTunnelManager: Handles SSH forward and reverse tunnels from Python.
-- build_connection_string(cfg): Builds the connection string according to the selected dialect.
-- PySide6 GUI with dynamic ComboBox populated from db_* sections in JSON.
-- Embedded OData service ready to expose your local database data.
-
----
-
-## Security
-- All tunnels use encrypted SSH connections.
-- No need to open public ports on your local network.
-- The reverse tunnel allows only the authorized VPS to access your OData.
----
-## Possible Extensions
-
-- Automatic reconnection if the SSH tunnel drops.
-- Automatic validation of parameters according to the selected dialect.
-- “Test Connection” button for each database.
-- Activity logs and OData query logging.
-
 ---
 # Use
 

@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/Button"
 import { Card } from "@/components/Card"
 import { Divider } from "@/components/Divider"
 import { Checkbox } from "@/components/Checkbox"
 import { Label } from "@/components/Label"
+import { Switch } from "@/components/Switch"
 import {
   Select,
   SelectContent,
@@ -14,26 +15,122 @@ import {
   SelectValue,
 } from "@/components/Select"
 import { useAppToast } from "@/components/Toast"
+import { ColumnDef } from "@tanstack/react-table"
+import { columns } from "@/components/ui/data-table/columns"
+import { DataTable } from "@/components/ui/data-table/DataTable"
+import { usage } from "@/data/data"
+import { Permission } from "@/types/permission"
+
+type Permission = {
+  uid: number
+  active: boolean
+  endpoints: {
+    name: string
+    actions: string[]
+  }[]
+  subjects: {
+    id: string
+    type: string
+  }[]
+}
 
 // -------------------- DATA HOOKS --------------------
 export function useDataPermissions() {
+
   const [permissions, setPermissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+
     setLoading(true)
-    const res = await fetch("https://localhost:5000/admin/permissions")
-    const data = await res.json()
-    setPermissions(data ?? [])
-    setLoading(false)
-  }
+
+    try {
+
+      const res = await fetch("https://localhost:5000/api/admin/permissions")
+      const json = await res.json()
+
+      setPermissions(json.data ?? [])
+
+    } catch (err) {
+      console.error("Error fetching permissions", err)
+      setPermissions([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
-  return { permissions, loading, refetch: fetchData }
+  return {
+    permissions,
+    loading,
+    refetch: fetchData,
+  }
 }
+
+export const permissionsColumns: ColumnDef<Endpoint>[] = [
+{
+  header: "Type permission",
+  cell: ({ row }) => (
+    <div className="space-y-1">
+      {row.original.subjects.map((ep) => (
+        <div key={ep.type} className="text-sm font-medium">
+          {ep.type}
+        </div>
+      ))}
+    </div>
+  ),
+},
+{
+  header: "Name",
+  cell: ({ row }) => (
+    <div className="space-y-1">
+      {row.original.subjects.map((ep) => (
+        <div key={ep.id} className="text-sm font-medium">
+          {ep.id}
+        </div>
+      ))}
+    </div>
+  ),
+},
+{
+  header: "Endpoints",
+  cell: ({ row }) => (
+    <div className="space-y-1">
+      {row.original.endpoints.map((ep) => (
+        <div key={ep.name} className="text-sm font-medium">
+          {ep.name}
+        </div>
+      ))}
+    </div>
+  ),
+},
+{
+  header: "Actions",
+  cell: ({ row }) => (
+    <div className="flex gap-1 flex-wrap">
+      {row.original.endpoints.flatMap(ep =>
+        ep.actions.map(action => (
+          <span
+            key={`${ep.name}-${action}`}
+            className="px-2 py-0.5 text-xs rounded bg-gray-200"
+          >
+            {action}
+          </span>
+        ))
+      )}
+    </div>
+  ),
+},
+{
+  header: "Active",
+  cell: ({ row }) => (
+    <Switch checked={row.original.active} disabled />
+  ),
+}
+]
 
 export function useDataUsers(enabled: boolean) {
   const [users, setUsers] = useState<any[]>([])
@@ -41,9 +138,9 @@ export function useDataUsers(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
 
-    fetch("https://localhost:5000/admin/users")
+    fetch("https://localhost:5000/api/admin/users")
       .then(r => r.json())
-      .then(d => setUsers(d ?? []))
+      .then(d => setUsers(d.data ?? []))
   }, [enabled])
 
   return { users }
@@ -56,9 +153,9 @@ export function useDataGroups(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return
 
-    fetch("https://localhost:5000/admin/groups")
+    fetch("https://localhost:5000/api/admin/groups")
       .then(r => r.json())
-      .then(d => setGroups(d ?? []))
+      .then(d => setGroups(d.data ?? []))
   }, [enabled])
 
   return { groups }
@@ -68,9 +165,9 @@ export function useDataGroups(enabled: boolean) {
 export function useDataEndpoints() {
   const [endpoints, setEndpoints] = useState<any[]>([])
   useEffect(() => {
-    fetch("https://localhost:5000/admin/endpoints")
+    fetch("https://localhost:5000/api/admin/endpoints")
       .then(r => r.json())
-      .then(d => setEndpoints(d ?? []))
+      .then(d => setEndpoints(d.data ?? []))
   }, [])
   return { endpoints }
 }
@@ -78,39 +175,22 @@ export function useDataEndpoints() {
 // -------------------- COMPONENT --------------------
 export default function Permissions() {
 
-  // ─────────────────────────────
-  // Subjects (modelo nuevo)
-  // ─────────────────────────────
   const [subjectType, setSubjectType] = useState<"user" | "group" | "">("")
   const [subjectId, setSubjectId] = useState("")
-
-  // ─────────────────────────────
-  // Data
-  // ─────────────────────────────
   const { permissions, loading, refetch } = useDataPermissions()
   const { users } = useDataUsers(subjectType === "user")
   const { groups } = useDataGroups(subjectType === "group")
   const { endpoints } = useDataEndpoints()
   const { showToast } = useAppToast()
-
-  // ─────────────────────────────
-  // Form state
-  // ─────────────────────────────
   const [editingId, setEditingId] = useState<string | null>(null)
   const [endpointName, setEndpointName] = useState("")
   const [actions, setActions] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  // ─────────────────────────────
-  // Reset subjectId when type changes
-  // ─────────────────────────────
   useEffect(() => {
     setSubjectId("")
   }, [subjectType])
 
-  // ─────────────────────────────
-  // Actions
-  // ─────────────────────────────
   function toggleAction(action: string) {
     setActions(prev =>
       prev.includes(action)
@@ -119,9 +199,6 @@ export default function Permissions() {
     )
   }
 
-  // ─────────────────────────────
-  // Load permission for edit
-  // ─────────────────────────────
   function loadForEdit(p: any) {
     setEditingId(p.uid)
 
@@ -139,9 +216,6 @@ export default function Permissions() {
     }
   }
 
-  // ─────────────────────────────
-  // Submit
-  // ─────────────────────────────
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
@@ -167,8 +241,8 @@ export default function Permissions() {
     }
 
     const url = editingId
-      ? `https://localhost:5000/admin/permissions/${editingId}`
-      : "https://localhost:5000/admin/permissions"
+      ? `https://localhost:5000/api/admin/permissions/${editingId}`
+      : "https://localhost:5000/api/admin/permissions"
 
     const method = editingId ? "PUT" : "POST"
 
@@ -307,22 +381,16 @@ export default function Permissions() {
 
       {/* LIST */}
       <section>
-        <ul className="divide-y">
-          {permissions.map(p => (
-            <li
-              key={p.id}
-              onClick={() => loadForEdit(p)}
-              className="cursor-pointer py-3 hover:bg-gray-50"
-            >
-              <p className="text-sm font-medium">
-                {p.by}: {p.target}
-              </p>
-              <p className="text-xs text-gray-500">
-                {p.endpoints[0]?.name} → {p.endpoints[0]?.actions.join(", ")}
-              </p>
-            </li>
-          ))}
-        </ul>
+          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl dark:text-gray-50">
+            Permissions available
+          </h1>
+          <div className="mt-4 sm:mt-6 lg:mt-10">
+          <DataTable
+              data={permissions}
+              columns={permissionsColumns}
+              onRowClick={loadForEdit}
+            />
+          </div>
       </section>
 
       <Divider />

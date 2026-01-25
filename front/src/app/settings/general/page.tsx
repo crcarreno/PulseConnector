@@ -42,9 +42,9 @@ export function useDataSources() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await fetch("https://localhost:5000/admin/data-sources")
-      const data = await res.json()
-      setDataSources(data.items ?? [])
+      const res = await fetch("https://localhost:5000/api/admin/data-sources")
+      const d = await res.json()
+      setDataSources(d.data.items ?? [])
     } catch (err) {
       console.error("Fetch error:", err)
     } finally {

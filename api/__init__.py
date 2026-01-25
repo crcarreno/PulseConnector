@@ -6,3 +6,4 @@ from .server import *
 from .auth import *
 from .health import *
 from .iam import *
+from api_odata.routes import *

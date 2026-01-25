@@ -17,7 +17,7 @@ import { ModalAddWorkspace } from "./ModalAddWorkspace"
 const workspaces = [
   {
     value: "retail-analytics",
-    name: "Retail analytics",
+    name: "Administrator",
     initials: "RA",
     role: "Member",
     color: "bg-indigo-600 dark:bg-indigo-500",
@@ -60,15 +60,15 @@ export const WorkspacesDropdownDesktop = () => {
               className="flex aspect-square size-8 items-center justify-center rounded bg-indigo-600 p-2 text-xs font-medium text-white dark:bg-indigo-500"
               aria-hidden="true"
             >
-              RA
+              AD
             </span>
             <div className="flex w-full items-center justify-between gap-x-4 truncate">
               <div className="truncate">
                 <p className="truncate whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-50">
-                  Retail analytics
+                  Admin
                 </p>
                 <p className="whitespace-nowrap text-left text-xs text-gray-700 dark:text-gray-300">
-                  Member
+                  Administrators
                 </p>
               </div>
               <RiExpandUpDownLine

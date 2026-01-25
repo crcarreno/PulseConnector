@@ -182,7 +182,20 @@ class SQLiteStorage:
 
     def list_endpoints(self):
         with self._conn() as c:
-            return c.execute("SELECT * FROM endpoints").fetchall()
+            return c.execute("""SELECT
+                                en.name ,
+                                en.namespace ,
+                                en."type" ,
+                                en.id_connection ,
+                                en.primary_key ,
+                                en.source , 
+                                dl.name as name_dialect,
+                                ds.database_name ,
+                                ds.name as datasource
+                                FROM endpoints en
+                                join data_sources ds on ds.id = en.id_connection 
+                                join dialects dl on dl.id = ds.dialect_id 
+                                """).fetchall()
 
     def register_endpoint(self, ep: dict):
         with self._conn() as c:

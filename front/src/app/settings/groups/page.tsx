@@ -17,9 +17,9 @@ export function useDataGroups() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await fetch("https://localhost:5000/admin/groups")
-      const data = await res.json()
-      setGroups(data ?? [])
+      const res = await fetch("https://localhost:5000/api/admin/groups")
+      const d = await res.json()
+      setGroups(d.data ?? [])
     } catch (err) {
       console.error("Fetch error:", err)
     } finally {
@@ -59,7 +59,7 @@ export default function Groups() {
     }
 
     try {
-      const res = await fetch("https://localhost:5000/admin/groups", {
+      const res = await fetch("https://localhost:5000/api/admin/groups", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

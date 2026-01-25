@@ -1,36 +1,4 @@
 {
-    "ssh": {
-        "enabled": true,
-        "vps_host": "0.0.0.0",
-        "vps_user": "user",
-        "vps_pass": "root",
-        "remote_db_port": 3306,
-        "local_bind_port": 5001
-    },
-    "db_mysql": {
-        "dialect": "mysql",
-        "host": "127.0.0.1",
-        "port": 3306,
-        "user": "root",
-        "pass": "root",
-        "database": "northwind"
-    },
-    "db_postgres": {
-        "dialect": "postgres",
-        "host": "127.0.0.1",
-        "port": 5432,
-        "user": "postgres",
-        "pass": "123",
-        "database": "northwind"
-    },
-    "db_mssql": {
-        "dialect": "mssql",
-        "host": "0.0.0.0",
-        "port": 1433,
-        "user": "sa",
-        "pass": "admin.1234",
-        "database": "northwind"
-    },
     "server": {
         "public_host": "0.0.0.0",
         "public_port": 5000,
@@ -51,11 +19,11 @@
     },
     "security": {
         "admin_user": "admin",
-        "cert": "/home/aluhxp/.config/PulseConnector/certs/cert.pem",
-        "key": "/home/aluhxp/.config/PulseConnector/certs/key.pem",
+        "master_password": "1234",
+        "cert": "/home/developer/.config/PulseConnector/certs/cert.pem",
+        "key": "/home/developer/.config/PulseConnector/certs/key.pem",
         "jwt_secret_key": "generate_your_secure_secret_key",
         "jwt_access_token_expires": 60,
         "jwt_refresh_token_expires": 7
-    },
-    "active_dialect": "postgres"
+    }
 }

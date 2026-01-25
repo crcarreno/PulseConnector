@@ -16,6 +16,8 @@ import {
 } from "./SidebarWorkspacesDropdown"
 import { UserProfileDesktop, UserProfileMobile } from "./UserProfile"
 
+import Image from "next/image"
+
 const navigation = [
   { name: "Overview", href: siteConfig.baseLinks.overview, icon: RiHome2Line },
   { name: "Details", href: siteConfig.baseLinks.details, icon: RiListCheck },
@@ -62,7 +64,20 @@ export function Sidebar() {
       {/* sidebar (lg+) */}
       <nav className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <aside className="flex grow flex-col gap-y-6 overflow-y-auto border-r border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-950">
-          <WorkspacesDropdownDesktop />
+
+        <div className="flex justify-center py-2">
+          <Image
+            src="/assets/icons/icon_resize.png"
+            alt="Logo"
+            width={140}
+            height={60}
+            priority
+            className="object-contain"
+          />
+        </div>
+
+          {/*<WorkspacesDropdownDesktop />*/}
+
           <nav
             aria-label="core navigation links"
             className="flex flex-1 flex-col space-y-10"

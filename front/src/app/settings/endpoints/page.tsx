@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/Button"
 import { Card } from "@/components/Card"
 import { Divider } from "@/components/Divider"
@@ -16,6 +16,13 @@ import {
 } from "@/components/Select"
 import { useAppToast } from "@/components/Toast"
 
+import { ColumnDef } from "@tanstack/react-table"
+import { columns } from "@/components/ui/data-table/columns"
+import { DataTable } from "@/components/ui/data-table/DataTable"
+import { usage } from "@/data/data"
+import { Endpoint } from "@/types/endpoint"
+
+
 // -------------------- HOOKS --------------------
 export function useDataListObjects(connectionId?: string, objectType?: string) {
   const [listObjects, setListObjects] = useState<string[]>([])
@@ -23,45 +30,155 @@ export function useDataListObjects(connectionId?: string, objectType?: string) {
   useEffect(() => {
     if (!connectionId || !objectType) return
 
-    fetch("https://localhost:5000/admin/schema/objects", {
+    fetch("https://localhost:5000/api/admin/schema/objects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ connection_id: connectionId, object_type: objectType }),
     })
       .then(r => r.json())
-      .then(d => setListObjects(d.items ?? []))
+      .then(d => setListObjects(d.data.items ?? []))
       .catch(() => setListObjects([]))
   }, [connectionId, objectType])
 
   return { listObjects }
 }
 
-export function useDataEndpoints() {
-  const [endpoints, setEndpoints] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+export type Endpoint = {
+  id: string
+  name: string
+  namespace: string
+  is_active: boolean
+}
 
-  const fetchData = async () => {
+export function useDataEndpoints() {
+
+  const [endpoints, setEndpoints] = useState<Endpoint[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const fetchData = useCallback(async () => {
+
     setLoading(true)
-    const res = await fetch("https://localhost:5000/admin/endpoints")
-    const data = await res.json()
-    setEndpoints(data ?? [])
-    setLoading(false)
-  }
+
+    try {
+
+      const res = await fetch("https://localhost:5000/api/admin/endpoints")
+      const json = await res.json()
+
+      setEndpoints(json.data ?? [])
+
+    } catch (err) {
+      console.error("Error fetching endpoints", err)
+      setEndpoints([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [fetchData])
 
-  return { endpoints, loading, refetch: fetchData }
+  return {
+    endpoints,
+    loading,
+    refetch: fetchData,
+  }
 }
+
+export const endpointColumns: ColumnDef<Endpoint>[] = [
+  {
+    accessorKey: "name",
+    header: "Endpoint",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-sm font-medium">
+          {row.original.name}
+        </p>
+      </div>
+    ),
+  },
+    {
+    accessorKey: "namespace",
+    header: "Namespace",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-xs text-gray-500">
+          {row.original.namespace}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "type",
+    header: "Type",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-xs text-gray-500">
+          {row.original.type}
+        </p>
+      </div>
+    ),
+  },
+    {
+    accessorKey: "source",
+    header: "Source",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-xs text-gray-500">
+          {row.original.source}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "dialect",
+    header: "Dialect",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-xs text-gray-500">
+          {row.original.name_dialect}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "datasource",
+    header: "Datasource",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-xs text-gray-500">
+          {row.original.datasource}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "database_name",
+    header: "Database name",
+    cell: ({ row }) => (
+      <div>
+        <p className="text-xs text-gray-500">
+          {row.original.database_name}
+        </p>
+      </div>
+    ),
+  },
+  {
+    accessorKey: "is_active",
+    header: "Active",
+    cell: ({ row }) => (
+      <Switch checked={row.original.is_active} disabled />
+    ),
+  },
+]
 
 export function useDataSources() {
   const [datasource, setDatasource] = useState<any[]>([])
 
   useEffect(() => {
-    fetch("https://localhost:5000/admin/data-sources")
+    fetch("https://localhost:5000/api/admin/data-sources")
       .then(r => r.json())
-      .then(d => setDatasource(d.items ?? []))
+      .then(d => setDatasource(d.data.items ?? []))
   }, [])
 
   return { datasource }
@@ -71,9 +188,9 @@ export function useDataObjects() {
   const [objects, setObjects] = useState<any[]>([])
 
   useEffect(() => {
-    fetch("https://localhost:5000/admin/objects")
+    fetch("https://localhost:5000/api/admin/objects")
       .then(r => r.json())
-      .then(d => setObjects(d ?? []))
+      .then(d => setObjects(d.data ?? []))
   }, [])
 
   return { objects }
@@ -127,8 +244,8 @@ export default function Endpoints() {
     }
 
     const url = editingId
-      ? `https://localhost:5000/admin/endpoints/${editingId}`
-      : "https://localhost:5000/admin/endpoints"
+      ? `https://localhost:5000/api/admin/endpoints/${editingId}`
+      : "https://localhost:5000/api/admin/endpoints"
 
     const method = editingId ? "PUT" : "POST"
 
@@ -236,28 +353,17 @@ export default function Endpoints() {
 
       {/* LIST */}
       <section>
-        <ul className="divide-y">
-          {endpoints.map(ep => (
-            <li
-              key={ep.id}
-              onClick={() => loadForEdit(ep)}
-              className="flex cursor-pointer items-center justify-between py-3 hover:bg-gray-50"
-            >
-              <div>
-                <p className="text-sm font-medium">{ep.name}</p>
-                <p className="text-xs text-gray-500">{ep.namespace}</p>
-              </div>
-              <Switch checked={ep.is_active} disabled />
-            </li>
-          ))}
-        </ul>
+          <h1 className="text-lg font-semibold text-gray-900 sm:text-xl dark:text-gray-50">
+            Endpoints available
+          </h1>
+          <div className="mt-4 sm:mt-6 lg:mt-10">
+          <DataTable
+              data={endpoints}
+              columns={endpointColumns}
+              onRowClick={loadForEdit}
+            />
+          </div>
       </section>
-
-      <Divider />
-
-      <Card className="p-4 text-sm text-gray-500">
-        Click an endpoint to edit it.
-      </Card>
 
     </div>
   )

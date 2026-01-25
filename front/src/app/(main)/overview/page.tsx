@@ -1,4 +1,6 @@
+
 "use client"
+
 import { CategoryBarCard } from "@/components/ui/overview/DashboardCategoryBarCard"
 import { ChartCard } from "@/components/ui/overview/DashboardChartCard"
 import { Filterbar } from "@/components/ui/overview/DashboardFilterbar"
@@ -7,8 +9,12 @@ import { overviews } from "@/data/overview-data"
 import { OverviewData } from "@/data/schema"
 import { cx } from "@/lib/utils"
 import { subDays, toDate } from "date-fns"
-import React from "react"
 import { DateRange } from "react-day-picker"
+
+import React, { useEffect, useState } from "react"
+import { Button } from "@/components/Button"
+import { useAppToast } from "@/components/Toast"
+
 
 export type PeriodValue = "previous-period" | "last-year" | "no-comparison"
 
@@ -138,9 +144,25 @@ const overviewsDates = overviews.map((item) => toDate(item.date).getTime())
 const maxDate = toDate(Math.max(...overviewsDates))
 
 export default function Overview() {
-  const [selectedDates, setSelectedDates] = React.useState<
-    DateRange | undefined
-  >({
+
+    const [serverRunning, setServerRunning] = useState<boolean | null>(null)
+    const [serverLoading, setServerLoading] = useState(false)
+
+    const { showToast } = useAppToast()
+
+    const StopSvg = (
+          <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
+            <path d="M6 6H18V18H6V6Z" />
+          </svg>
+        )
+
+    const PlaySvg = (
+          <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
+            <path d="M7 4V20L20 12L7 4Z" />
+          </svg>
+        )
+
+  const [selectedDates, setSelectedDates] = React.useState<DateRange | undefined>({
     from: subDays(maxDate, 30),
     to: maxDate,
   })
@@ -151,7 +173,54 @@ export default function Overview() {
     categories.map((category) => category.title),
   )
 
+useEffect(() => {
+  fetchServerStatus()
+}, [])
+
+async function fetchServerStatus() {
+  try {
+    const res = await fetch("https://localhost:5000/api/status")
+    const json = await res.json()
+
+    setServerRunning(json.data.running)
+  } catch (err) {
+    console.error("Error fetching server status", err)
+  }
+}
+
+
+async function startServer() {
+  setServerLoading(true)
+  try {
+    await fetch("https://localhost:5000/api/server/start", { method: "POST" })
+    setServerRunning(true)
+    showToast({ title: "Server started" })
+  } finally {
+    setServerLoading(false)
+  }
+}
+
+async function stopServer() {
+  setServerLoading(true)
+  try {
+    await fetch("https://localhost:5000/api/server/stop", { method: "POST" })
+    setServerRunning(false)
+    showToast({ title: "Server stopped" })
+  } finally {
+    setServerLoading(false)
+  }
+}
+
+
+
+function Spinner() {
   return (
+    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-transparent" />
+  )
+}
+
+  return (
+
     <>
       <section aria-labelledby="current-billing-cycle">
         <h1
@@ -161,16 +230,43 @@ export default function Overview() {
           Main
         </h1>
         <div className="mt-4 grid grid-cols-1 gap-14 sm:mt-8 sm:grid-cols-2 lg:mt-10 xl:grid-cols-3">
-          <ProgressBarCard
-            title="Usage"
-            change="+0.2%"
-            value="68.1%"
-            valueDescription="of allowed capacity"
-            ctaDescription="Monthly usage resets in 12 days."
-            ctaText="Manage plan."
-            ctaLink="#"
-            data={data}
-          />
+          <div className="flex items-center gap-3">
+
+            <Button
+              disabled={serverLoading}
+              onClick={serverRunning ? stopServer : startServer}
+              className={cx(
+                "flex items-center gap-2 transition-colors",
+                serverRunning
+                  ? "!bg-red-600 hover:!bg-red-700 text-white"
+                  : "!bg-green-500 hover:!bg-green-600 text-white"
+              )}
+            >
+              {serverLoading ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/60 border-t-transparent" />
+              ) : serverRunning ? (
+                StopSvg
+              ) : (
+                PlaySvg
+              )}
+
+              {serverLoading
+                ? serverRunning
+                  ? "Stopping..."
+                  : "Starting..."
+                : serverRunning
+                ? "Stop server"
+                : "Start server"}
+            </Button>
+
+
+
+            <span className="text-xs text-gray-500">
+              {serverRunning ? "Active" : "Inactive"}
+            </span>
+
+        </div>
+
           <ProgressBarCard
             title="Workspace"
             change="+2.9%"
