@@ -1,5 +1,21 @@
+from flask import json
+
 from security.storage.sqlite_storage import SQLiteStorage
 from pathlib import Path
+
+from utils.utils import CONFIG_PATH
+
+
+def load_config():
+    with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    return {
+        "HOST": cfg.get("host", "0.0.0.0"),
+        "PORT": cfg.get("port", 5000),
+        "DEBUG": cfg.get("debug", False),
+        "ENV": cfg.get("env", "dev"),
+    }
 
 
 class ConfigServices:

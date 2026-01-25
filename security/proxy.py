@@ -2,7 +2,7 @@ import ssl
 import requests
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from flask import json
-from utils import CONFIG_PATH
+from utils.utils import CONFIG_PATH
 from analytics.logger import setup_logger
 
 log = setup_logger()

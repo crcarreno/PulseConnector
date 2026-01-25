@@ -1,48 +1,172 @@
 {
   "info": {
-    "name": "PulseConnector IAM",
-    "description": "IAM Admin API for Users, Groups, Endpoints and Permissions",
+    "name": "PulseConnector API (Full)",
+    "description": "Full Postman collection for PulseConnector backend (exact current endpoints)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "https://localhost:5000"
-    }
+    { "key": "base_url", "value": "http://localhost:5000" },
+    { "key": "namespace", "value": "default" },
+    { "key": "endpoint", "value": "example" },
+    { "key": "id", "value": "1" }
   ],
   "item": [
+
     {
-      "name": "Users",
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{base_url}}/api/health" }
+        },
+        {
+          "name": "Status",
+          "request": { "method": "GET", "url": "{{base_url}}/api/status" }
+        },
+        {
+          "name": "Version",
+          "request": { "method": "GET", "url": "{{base_url}}/api/version" }
+        }
+      ]
+    },
+
+    {
+      "name": "Server Control",
+      "item": [
+        {
+          "name": "Start Server",
+          "request": { "method": "POST", "url": "{{base_url}}/api/server/start" }
+        },
+        {
+          "name": "Stop Server",
+          "request": { "method": "POST", "url": "{{base_url}}/api/server/stop" }
+        }
+      ]
+    },
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"password\"\n}"
+            },
+            "url": "{{base_url}}/api/login"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin - Objects & Schema",
+      "item": [
+        {
+          "name": "List Objects",
+          "request": { "method": "GET", "url": "{{base_url}}/api/admin/objects" }
+        },
+        {
+          "name": "List Schema Objects",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"connection_id\": \"conn_id\",\n  \"object_type\": \"table\"\n}"
+            },
+            "url": "{{base_url}}/api/admin/schema/objects"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin - Dialects",
+      "item": [
+        {
+          "name": "List Dialects",
+          "request": { "method": "GET", "url": "{{base_url}}/api/admin/dialects" }
+        },
+        {
+          "name": "Create Dialect",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"postgres\",\n  \"name\": \"PostgreSQL\",\n  \"supported_versions\": [\"13\", \"14\"],\n  \"is_active\": true\n}"
+            },
+            "url": "{{base_url}}/api/admin/dialects"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin - Data Sources",
+      "item": [
+        {
+          "name": "List Data Sources",
+          "request": { "method": "GET", "url": "{{base_url}}/api/admin/data-sources" }
+        },
+        {
+          "name": "Create Data Source",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"local\",\n  \"dialect_id\": \"postgres\",\n  \"host\": \"localhost\",\n  \"port\": 5432,\n  \"username\": \"postgres\",\n  \"password\": \"secret\",\n  \"database_name\": \"test\"\n}"
+            },
+            "url": "{{base_url}}/api/admin/data-sources"
+          }
+        },
+        {
+          "name": "Update Data Source",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"host\": \"127.0.0.1\" }" },
+            "url": "{{base_url}}/api/admin/data-sources/{{id}}"
+          }
+        },
+        {
+          "name": "Delete Data Source",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/admin/data-sources/{{id}}"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin - Users",
       "item": [
         {
           "name": "Create User",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/users",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"user1\",\n  \"display_name\": \"User Test 1\",\n  \"password_hash\": \"123456\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"user\": \"test\", \"password_hash\": \"secret\" }" },
+            "url": "{{base_url}}/api/admin/users"
           }
         },
         {
           "name": "List Users",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/admin/users"
-          }
+          "request": { "method": "GET", "url": "{{base_url}}/api/admin/users" }
         },
         {
           "name": "Get User",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/users/get",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"user1\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"user\": \"test\" }" },
+            "url": "{{base_url}}/api/admin/users/get"
           }
         },
         {
@@ -50,11 +174,8 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/users/update",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"user1\",\n  \"display_name\": \"User Updated\",\n  \"password_hash\": \"newhash\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"user\": \"test\", \"display_name\": \"Updated\" }" },
+            "url": "{{base_url}}/api/admin/users/update"
           }
         },
         {
@@ -62,47 +183,36 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/users/disable",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"user\": \"user1\",\n  \"action\": 0\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"user\": \"test\", \"action\": 0 }" },
+            "url": "{{base_url}}/api/admin/users/disable"
           }
         }
       ]
     },
+
     {
-      "name": "Groups",
+      "name": "Admin - Groups",
       "item": [
         {
           "name": "Create Group",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/groups",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\",\n  \"display_name\": \"Public Group\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\" }" },
+            "url": "{{base_url}}/api/admin/groups"
           }
         },
         {
           "name": "List Groups",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/admin/groups"
-          }
+          "request": { "method": "GET", "url": "{{base_url}}/api/admin/groups" }
         },
         {
           "name": "Get Group",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/groups/get",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\" }" },
+            "url": "{{base_url}}/api/admin/groups/get"
           }
         },
         {
@@ -110,11 +220,8 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/groups/update",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\",\n  \"display_name\": \"Public Updated\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\", \"display_name\": \"Admins\" }" },
+            "url": "{{base_url}}/api/admin/groups/update"
           }
         },
         {
@@ -122,11 +229,8 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/groups/disable",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\",\n  \"action\": 0\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\", \"action\": 0 }" },
+            "url": "{{base_url}}/api/admin/groups/disable"
           }
         },
         {
@@ -134,11 +238,8 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/groups/add-user",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\",\n  \"user\": \"user1\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\", \"user\": \"test\" }" },
+            "url": "{{base_url}}/api/admin/groups/add-user"
           }
         },
         {
@@ -146,112 +247,48 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/groups/remove-user",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\",\n  \"user\": \"user1\"\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\", \"user\": \"test\" }" },
+            "url": "{{base_url}}/api/admin/groups/remove-user"
           }
         },
         {
-          "name": "List Group Members",
+          "name": "Group Members",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/admin/groups/members",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"group\": \"public\"\n}"
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"group\": \"admins\" }" },
+            "url": "{{base_url}}/api/admin/groups/members"
           }
         }
       ]
     },
+
     {
-      "name": "Endpoints",
-      "item": [
-        {
-          "name": "Create Endpoint",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/endpoints",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"get_data_orders\",\n  \"dialect\": \"mssql\",\n  \"database\": \"northwind\",\n  \"type\": \"table\",\n  \"source\": \"Orders\",\n  \"namespace\": \"sqlserver\",\n  \"primary_key\": \"OrderID\"\n}"
-            }
-          }
-        },
-        {
-          "name": "List Endpoints",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/admin/endpoints"
-          }
-        },
-        {
-          "name": "Get Endpoint",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/endpoints/get",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"get_data_orders\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Update Endpoint",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/endpoints/update",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"get_data_orders\",\n  \"source\": \"OrdersArchive\"\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Permissions",
+      "name": "Admin - Permissions",
       "item": [
         {
           "name": "Create Permission",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/permissions",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"by\": \"user\",\n  \"target\": \"user1\",\n  \"endpoints\": [\n    { \"name\": \"get_data_orders\", \"actions\": [\"read\", \"write\"] }\n  ]\n}"
-            }
+              "raw": "{\n  \"subjects\": [\"test\"],\n  \"endpoints\": { \"orders\": [\"read\"] }\n}"
+            },
+            "url": "{{base_url}}/api/admin/permissions"
           }
         },
         {
           "name": "List Permissions",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/admin/permissions"
-          }
+          "request": { "method": "GET", "url": "{{base_url}}/api/admin/permissions" }
         },
         {
           "name": "Get Permission",
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/permissions/get",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"uid\": 1\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"uid\": \"perm_id\" }" },
+            "url": "{{base_url}}/api/admin/permissions/get"
           }
         },
         {
@@ -259,115 +296,43 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_url}}/admin/permissions/disable",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"uid\": 1,\n  \"action\": 0\n}"
-            }
+            "body": { "mode": "raw", "raw": "{ \"uid\": \"perm_id\", \"action\": 0 }" },
+            "url": "{{base_url}}/api/admin/permissions/disable"
           }
         }
       ]
     },
+
     {
-      "name": "Dialects",
+      "name": "OData",
       "item": [
         {
-          "name": "List Dialects",
+          "name": "OData GET",
           "request": {
             "method": "GET",
-            "url": "{{base_url}}/admin/dialects"
+            "url": "{{base_url}}/api/odata/{{namespace}}/{{endpoint}}?$select=*&$top=10"
           }
         },
         {
-          "name": "Create Dialect",
+          "name": "OData INSERT",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{base_url}}/admin/dialects",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"key\": \"mysql\",\n  \"name\": \"MySQL\",\n  \"supported_versions\": \">=5.7\",\n  \"is_active\": true\n}"
-            }
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"field\": \"value\" }" },
+            "url": "{{base_url}}/api/odata/{{namespace}}/{{endpoint}}"
           }
         },
         {
-          "name": "Update Dialect",
+          "name": "OData UPDATE",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{base_url}}/admin/dialects/{{dialect_id}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"supported_versions\": \">=8.0\",\n  \"is_active\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Disable Dialect",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{base_url}}/admin/dialects/{{dialect_id}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"is_active\": false\n}"
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Data Sources",
-      "item": [
-        {
-          "name": "List Data Sources",
-          "request": {
-            "method": "GET",
-            "url": "{{base_url}}/admin/data-sources"
-          }
-        },
-        {
-          "name": "Create Data Source",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{base_url}}/admin/data-sources",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Northwind MySQL\",\n  \"dialect_id\": \"{{dialect_id}}\",\n  \"host\": \"127.0.0.1\",\n  \"port\": 3306,\n  \"username\": \"root\",\n  \"password\": \"root\",\n  \"database_name\": \"northwind\",\n  \"is_active\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Update Data Source",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "url": "{{base_url}}/admin/data-sources/{{data_source_id}}",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"host\": \"192.168.1.10\",\n  \"port\": 3306,\n  \"database_name\": \"northwind_v2\",\n  \"is_active\": true\n}"
-            }
-          }
-        },
-        {
-          "name": "Delete Data Source",
-          "request": {
-            "method": "DELETE",
-            "url": "{{base_url}}/admin/data-sources/{{data_source_id}}"
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"field\": \"new value\" }" },
+            "url": "{{base_url}}/api/odata/{{namespace}}/{{endpoint}}/{{id}}"
           }
         }
       ]
     }
+
   ]
 }

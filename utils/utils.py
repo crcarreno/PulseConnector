@@ -69,5 +69,5 @@ def get_base_path():
         return Path(__file__).resolve().parent
 
 BASE_PATH = get_base_path()
-CONFIG_PATH = BASE_PATH / "config.json"
-SECURITY_PATH = BASE_PATH / "security"
+CONFIG_PATH = BASE_PATH / "../config.json"
+SECURITY_PATH = BASE_PATH / "../security"

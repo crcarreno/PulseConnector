@@ -5,7 +5,7 @@ from flask import json
 from analytics.analytics import Analytics
 from db import DB
 from security.config_services import ConfigServices
-from utils import CONFIG_PATH
+from utils.utils import CONFIG_PATH
 
 
 class BaseSchemaExtractor(ABC):

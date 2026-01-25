@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from datetime import date
-from version import __version__
+from utils.version import __version__
 
 
 POSTHOG_API_KEY = "phc_lXEwU1I1SmWnyKbsZDoEDXUQXimcDRj4jViNMM6knPo"

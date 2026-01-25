@@ -4,6 +4,39 @@
 
 ## v1.2.1 (2026-01-02)
 
+*January 24, 2026*
+
+- feat: Complete removal of legacy GUI and UI-related dependencies
+- feat: Backend refactored into a pure service-oriented API (API-first architecture)
+- feat: Unified API response contract using a standard { success, data, error } schema
+- feat: Automatic bootstrap process executed at application startup
+- feat: Automatic generation of SSL certificates when missing
+- feat: Automatic creation of default admin user (idempotent)
+- feat: Centralized password hashing using Argon2 via PasswordHasher
+- feat: Full IAM (Identity & Access Management) exposed via API endpoints
+- feat: Runtime control via API endpoints (/server/start, /server/stop)
+- feat: Centralized runtime guard using before_request pipeline
+- feat: Explicit allowlist for runtime-disabled mode
+- feat: OData endpoints isolated from core API response contract
+- feat: Support for OData query parameters ($select, $filter, $top, $skip, $orderby)
+- feat: Complete Postman collection covering all current endpoints
+- feat: Modular project structure prepared for React frontend integration
+- feat: Clean separation between API, runtime control, IAM, and OData layers
+
+- fix: Resolved deadlock preventing /server/start from being called when runtime was stopped
+- fix: Removed misuse of abort() causing HTML responses and breaking API contract
+- fix: Fixed inconsistent runtime state handling (server_state.running vs SERVER_STATE)
+- fix: Corrected invalid item count calculation (len("items"))
+- fix: Fixed bootstrap flow when admin user did not exist (get_user() exception handling)
+- fix: Removed duplicated and hardcoded configuration access across modules
+- fix: Eliminated mixed responsibilities between API routes and infrastructure logic
+- fix: Removed unused and legacy code paths related to embedded server startup
+- fix: Fixed inconsistent error handling across IAM endpoints
+- fix: Ensured OData endpoints always return JSON responses
+- fix: Removed HTML rendering from API Blueprint
+- fix: Removed obsolete server lifecycle controller and orphaned scripts
+
+
 *January 4, 2026*
 
 - Added
