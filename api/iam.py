@@ -1,6 +1,7 @@
 
 from uuid import uuid4
-from flask import request
+from flask import request, current_app
+from database.db_config import config_db
 from security.config_services import ConfigServices
 from security.iam_services import IAMService
 from security.password_hasher import PasswordHasher
@@ -9,8 +10,8 @@ from utils.api_response import api_response
 
 from . import api_bp
 
+iam = IAMService(config_db)
 conf = ConfigServices()
-iam = IAMService()
 
 
 # ------------- Objects ----------------
@@ -36,11 +37,12 @@ def list_schema_objects_endpoint():
             status=400
         )
 
-    conf_connection = conf.get_data_source(connection_id)
+    conf_connection = current_app.config_db.get_data_source(connection_id)
     if conf_connection is None:
         return api_response(False, error="Connection not found", status=404)
 
-    extractor = SchemaExtractorFactory.create(conf_connection)
+    db = current_app.db_pools.get_db(conf_connection["name"])
+    extractor = SchemaExtractorFactory.create(db)
 
     if object_type == "table":
         items = extractor.get_tables()

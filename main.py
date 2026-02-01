@@ -1,29 +1,31 @@
+
 import threading
 from datetime import timedelta
 from flask import Flask, json, jsonify
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 from waitress import serve
-
 from analytics.analytics import Analytics
 from analytics.logger import setup_logger
+from database.db_config import config_db
 from threads.server_state import init_server_state
 from security.config_services import load_config
 from utils.utils import CONFIG_PATH
 from bootstrap import run_bootstrap
-
 from api import api_bp
 from security.proxy import start_https_proxy
+from database.db_pool_manager import DbPoolManager
 
 log = setup_logger()
 
+with open(CONFIG_PATH) as f:
+    cfg = json.load(f)
+
 
 def create_app():
+
     app = Flask(__name__)
 
-    with open(CONFIG_PATH) as f:
-        cfg = json.load(f)
-        secure_cfg = cfg["security"]
+    secure_cfg = cfg["security"]
 
     app.config["JWT_SECRET_KEY"] = secure_cfg["jwt_secret_key"]
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(
@@ -36,43 +38,23 @@ def create_app():
     config = load_config()
     app.config.update(config)
 
-    jwt = JWTManager(app)
+    JWTManager(app)
 
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({
-            "success": False,
-            "data": None,
-            "error": "token_expired"
-        }), 401
+    analytics = Analytics()
+    app.analytics = analytics
 
-    #CORS(app, supports_credentials=True)
+    app.config_db = config_db
+
+    data_sources = config_db.get_enabled_data_sources_for_runtime()
+    app.db_pools = DbPoolManager(data_sources, analytics)
 
     init_server_state()
+
+    # ---------- API ----------
     app.register_blueprint(api_bp)
 
     return app
 
-'''
-def start_api():
-    app = create_app()
-
-    with open(CONFIG_PATH) as f:
-        cfg = json.load(f)
-        server_cfg = cfg["server"]
-
-    host = server_cfg["internal_host"]
-    port = server_cfg["internal_port"]
-
-    log.info(f"Starting internal API on http://{host}:{port}")
-
-    app.run(
-        host=host,
-        port=port,
-        debug=False,
-        use_reloader=False
-    )
-'''
 
 def start_api():
     app = create_app()
@@ -111,14 +93,12 @@ def main():
         analytics.capture("api_start")
         analytics.send_daily_usage()
 
-        # 1️⃣ API interna (Flask)
         threading.Thread(
             target=start_api,
             name="api-thread",
             daemon=True
         ).start()
 
-        # 2️⃣ Proxy HTTPS (frontal, bloqueante)
         log.info("Starting HTTPS reverse proxy")
         start_https_proxy()
 

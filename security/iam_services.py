@@ -1,10 +1,10 @@
+
 from security.storage.sqlite_storage import SQLiteStorage
-from pathlib import Path
 
 class IAMService:
 
-    def __init__(self):
-        self.db = SQLiteStorage(Path("database/pulseconnector.db"))
+    def __init__(self, storage: SQLiteStorage):
+        self.db = storage
 
     # USERS
     def validate_user(self, user, password_hash):

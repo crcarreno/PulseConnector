@@ -24,20 +24,24 @@ class SQLiteStorage:
 
         with self._conn() as c:
             rows = c.execute("""
-                             SELECT DISTINCT pa.endpoint_name,
-                                             pa.action
-                             FROM permissions p
-                                      INNER JOIN permission_actions pa
-                                                 ON pa.permission_uid = p.uid
-                                      LEFT JOIN group_users gu
-                                                ON p.by_type = 'group'
-                                                    -- AND gu.group_name = p.target
-                             WHERE p.active = 1
-                               --AND (
-                                 --(p.by_type = 'user' AND p.target = ?)
-                                     --OR (p.by_type = 'group' AND gu.user = ?)
-                                 --)
-                             """, (username, username)).fetchall()
+                 SELECT DISTINCT
+                        pa.endpoint_name,
+                        pa.action
+                    FROM permissions p
+                    INNER JOIN permission_actions pa
+                        ON pa.permission_uid = p.uid
+                    INNER JOIN permission_subjects ps
+                        ON ps.permission_uid = p.uid
+                    LEFT JOIN group_users gu
+                        ON ps.subject_type = 'group'
+                       AND gu.group_name = ps.subject_id
+                    WHERE p.active = 1
+                      --AND (
+                      --      (ps.subject_type = 'user' AND ps.subject_id = :username)
+                      --      OR
+                      --      (ps.subject_type = 'group' AND gu.user = :username)
+                      --    );
+                 """, ).fetchall()
 
             perms = {}
             for r in rows:
@@ -437,6 +441,47 @@ class SQLiteStorage:
             if not row:
                 raise ValueError("Data source not found")
             return dict(row)
+
+
+    def get_enabled_data_sources_for_runtime(self):
+        """
+        Devuelve las data sources activas en un formato
+        consumible directamente por DbPoolManager.
+        """
+        with self._conn() as c:
+            rows = c.execute("""
+                SELECT
+                    ds.id,
+                    ds.name,
+                    ds.host,
+                    ds.port,
+                    ds.username,
+                    ds.password,
+                    ds.database_name,
+                    d.key AS dialect
+                FROM data_sources ds
+                JOIN dialects d ON d.id = ds.dialect_id
+                WHERE ds.is_active = 1
+                  AND d.is_active = 1
+            """).fetchall()
+
+            result = []
+
+            for r in rows:
+                result.append({
+                    "name": r["name"],  # key lógico del pool
+                    "dialect": r["dialect"],
+                    "connection": {
+                        "host": r["host"],
+                        "port": r["port"],
+                        "user": r["username"],
+                        "pass": r["password"],
+                        "database": r["database_name"],
+                    }
+                })
+
+            return result
+
 
     def create_data_source(
         self,

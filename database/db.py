@@ -1,6 +1,5 @@
 # db.py
 from sqlalchemy import MetaData, inspect
-from db_pool import MSSQLAdapter, MySQLAdapter, PostgresAdapter
 from analytics.logger import setup_logger
 
 log = setup_logger()
@@ -13,32 +12,22 @@ class Meta:
 
 class DB:
 
-    def __init__(self, cfg, analytics):
-        self.cfg = cfg
-        self.meta = Meta()
+    def __init__(self, adapter, analytics, dialect: str):
         self.analytics = analytics
+        self.dialect = dialect
+        self.meta = Meta()
 
-        dialect = cfg["active_dialect"]
 
-        if dialect == "mssql":
-            self.adapter = MSSQLAdapter(cfg, analytics)
+        if not adapter:
+            raise ValueError("DB requires a valid adapter")
 
-        elif dialect == "mysql":
-            self.adapter = MySQLAdapter(cfg, analytics)
-
-        elif dialect == "postgres":
-            self.adapter = PostgresAdapter(cfg, analytics)
-
-        else:
-            log.error("Unknown DB dialect %s" % dialect)
-            raise ValueError("Unsupported dialect")
-
+        self.adapter = adapter
         self.load_metadata()
 
 
     def load_metadata(self):
 
-        dialect = self.cfg["active_dialect"]
+        dialect = self.dialect
         conn = self.adapter.acquire()
         cur = None
 
@@ -269,7 +258,7 @@ class DB:
                     sql += " ORDER BY " + ", ".join(order_parts)
 
             # ----- LIMIT / OFFSET -----
-            dialect = self.cfg["active_dialect"]
+            dialect = self.dialect
 
             top = int(params.get("$top", 0)) if "$top" in params else None
             skip = int(params.get("$skip", 0)) if "$skip" in params else None

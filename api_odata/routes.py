@@ -1,16 +1,17 @@
 
 from collections import defaultdict
 from flask import request, jsonify
+from analytics.analytics import Analytics
 from analytics.logger import setup_logger
 from analytics.usage_counter import increment_request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
-from db import DB
+from database.db_config import config_db
 from security.iam_services import IAMService
 from api import api_bp
 
-iam = IAMService()
+iam = IAMService(config_db)
 log = setup_logger()
+analytics = Analytics()
 
 USER_PERMISSIONS = defaultdict(lambda: defaultdict(set))
 ENDPOINT_BY_NAMESPACE = {}
@@ -46,12 +47,7 @@ def load_endpoints():
 
 
 load_endpoints()
-
-
-# ---------- DB ----------
-def init_db(cfg, analytics):
-    global db
-    db = DB(cfg, analytics)
+build_permission_cache(iam)
 
 
 # ---------- OData ----------
@@ -64,6 +60,7 @@ def odata_table(namespace, endpoint_name):
         return jsonify({"error": "Endpoint not found"}), 404
 
     username = get_jwt_identity()
+
     if not can_access(username, endpoint_name, "read"):
         return jsonify({"error": "Permission denied"}), 403
 

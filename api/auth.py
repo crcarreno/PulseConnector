@@ -1,5 +1,7 @@
+
 from flask import request
 from flask_jwt_extended import create_access_token
+from database.db_config import config_db
 from security.iam_services import IAMService
 from security.password_hasher import PasswordHasher
 from utils.api_response import api_response
@@ -7,12 +9,14 @@ from analytics.logger import setup_logger
 
 from . import api_bp
 
-iam = IAMService()
+iam = IAMService(config_db)
 log = setup_logger()
 
 @api_bp.route("/login", methods=["POST"])
 def login():
+
     try:
+
         data = request.get_json()
         if not data:
             return api_response(False, error="JSON body required", status=400)

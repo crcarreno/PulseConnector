@@ -1,11 +1,6 @@
+
 from abc import ABC, abstractmethod
-
-from flask import json
-
-from analytics.analytics import Analytics
-from db import DB
-from security.config_services import ConfigServices
-from utils.utils import CONFIG_PATH
+from database.db import DB
 
 
 class BaseSchemaExtractor(ABC):
@@ -130,37 +125,21 @@ class SQLServerSchemaExtractor(BaseSchemaExtractor):
 class SchemaExtractorFactory:
 
     @staticmethod
-    def create(conf_connection):
-
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-
-        analytics = Analytics()
-        db = DB(cfg, analytics)
+    def create(db: DB):
 
         conn = db.adapter.acquire()
+        dialect = db.dialect
 
-        db_type = conf_connection.get("dialect")
-
-        if db_type == 'sqlite':
+        if dialect == "sqlite":
             return SQLiteSchemaExtractor(conn)
-        if db_type == 'postgres':
+
+        if dialect == "postgres":
             return PostgresSchemaExtractor(conn)
-        if db_type == 'mysql':
+
+        if dialect == "mysql":
             return MySQLSchemaExtractor(conn)
-        if db_type == 'sqlserver':
+
+        if dialect in ("mssql", "sqlserver"):
             return SQLServerSchemaExtractor(conn)
-        raise ValueError(f"Unsupported database type: {db_type}")
 
-
-# ---------------- USO ----------------
-"""
-extractor = SchemaExtractorFactory.create('postgresql', conn)
-
-if object_type == 'table':
-    data = extractor.get_tables()
-elif object_type == 'view':
-    data = extractor.get_views()
-elif object_type == 'sp':
-    data = extractor.get_stored_procedures()
-"""
+        raise ValueError(f"Unsupported database type: {dialect}")

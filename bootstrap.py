@@ -1,10 +1,12 @@
 from pathlib import Path
 from analytics.logger import setup_logger
+from database.db_config import config_db
 from security.password_hasher import PasswordHasher
 from security.iam_services import IAMService
 from security.config_services import load_config
 from security.certs.admin_certs import generate_ca, generate_server_cert, save_pem
 
+iam = IAMService(config_db)
 log = setup_logger()
 
 APP_NAME = "PulseConnector"
@@ -52,8 +54,6 @@ def ensure_certificates(cfg):
 
 
 def ensure_admin_user():
-
-    iam = IAMService()
 
     try:
         iam.get_user("admin")

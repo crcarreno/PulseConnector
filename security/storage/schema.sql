@@ -104,27 +104,6 @@ CREATE TABLE IF NOT EXISTS permission_actions (
         ON DELETE CASCADE
 );
 
-
-/*CREATE TABLE IF NOT EXISTS permissions (
-    uid INTEGER PRIMARY KEY AUTOINCREMENT,
-    by_type TEXT CHECK(by_type IN ('user','group')),
-    id_user TEXT,
-    id_group TEXT,
-    active INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (id_user) REFERENCES users(user),
-    FOREIGN KEY (id_group) REFERENCES groups(group_name)
-);*/
-
--- PERMISSION ENDPOINT ACTIONS
-/*CREATE TABLE IF NOT EXISTS permission_actions (
-    permission_uid INTEGER,
-    endpoint_name TEXT,
-    action TEXT,
-    PRIMARY KEY (permission_uid, endpoint_name, action),
-    FOREIGN KEY (permission_uid) REFERENCES permissions(uid) ON DELETE CASCADE,
-    FOREIGN KEY (endpoint_name) REFERENCES endpoints(name) ON DELETE CASCADE
-);*/
-
 -- OBJECTS
 CREATE TABLE IF NOT EXISTS db_objects (
     object TEXT,
