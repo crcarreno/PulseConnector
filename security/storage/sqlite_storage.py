@@ -414,6 +414,7 @@ class SQLiteStorage:
                        ds.host,
                        ds.port,
                        ds.username,
+                       ds.password,
                        ds.database_name,
                        ds.is_active
                 FROM data_sources ds

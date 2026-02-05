@@ -1,6 +1,6 @@
 
 from collections import defaultdict
-from flask import request, jsonify
+from flask import request, jsonify, current_app
 from analytics.analytics import Analytics
 from analytics.logger import setup_logger
 from analytics.usage_counter import increment_request
@@ -15,7 +15,6 @@ analytics = Analytics()
 
 USER_PERMISSIONS = defaultdict(lambda: defaultdict(set))
 ENDPOINT_BY_NAMESPACE = {}
-db = None
 
 
 # ---------- Security cache ----------
@@ -72,6 +71,10 @@ def odata_table(namespace, endpoint_name):
     }
 
     try:
+
+        db_pool = current_app.config["DB_POOL_MANAGER"]
+
+        db = db_pool.get_db(endpoint["datasource"])
         result = db.query_odata(endpoint["source"], params)
 
         rows = result.get("rows", [])

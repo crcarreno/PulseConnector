@@ -13,6 +13,7 @@ from utils.utils import CONFIG_PATH
 from bootstrap import run_bootstrap
 from api import api_bp
 from security.proxy import start_https_proxy
+from database.db_runtime_sources import load_runtime_sources
 from database.db_pool_manager import DbPoolManager
 
 log = setup_logger()
@@ -37,16 +38,23 @@ def create_app():
 
     config = load_config()
     app.config.update(config)
+    app.config_db = config_db
 
     JWTManager(app)
 
     analytics = Analytics()
     app.analytics = analytics
 
-    app.config_db = config_db
+    # --- DB RUNTIME BOOTSTRAP (AQUÍ) ---
+    sources = load_runtime_sources()
+    #db_pool_manager = DbPoolManager(sources, log)
+    app.config["DB_POOL_MANAGER"] = DbPoolManager(sources.values(), analytics)
 
-    data_sources = config_db.get_enabled_data_sources_for_runtime()
-    app.db_pools = DbPoolManager(data_sources, analytics)
+    # exponerlo de forma global/controlada
+    #app.config["DB_POOL_MANAGER"] = db_pool_manager
+
+
+
 
     init_server_state()
 

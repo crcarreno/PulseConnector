@@ -41,7 +41,11 @@ def list_schema_objects_endpoint():
     if conf_connection is None:
         return api_response(False, error="Connection not found", status=404)
 
-    db = current_app.db_pools.get_db(conf_connection["name"])
+    #db = current_app.db_pools.get_db(conf_connection["name"])
+
+    db_pool = current_app.config["DB_POOL_MANAGER"]
+    db = db_pool.get_db(conf_connection["name"])
+
     extractor = SchemaExtractorFactory.create(db)
 
     if object_type == "table":
