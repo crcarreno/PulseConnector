@@ -335,6 +335,35 @@ class SQLiteStorage:
 
             return permission_uid
 
+    def update_permission(self, uid, subjects, endpoints):
+        with self._conn() as c:
+            cur = c.execute("SELECT uid FROM permissions WHERE uid = ?", (uid,)).fetchone()
+            if not cur:
+                raise ValueError("Permission not found")
+
+            c.execute("DELETE FROM permission_subjects WHERE permission_uid = ?", (uid,))
+            c.execute("DELETE FROM permission_actions WHERE permission_uid = ?", (uid,))
+
+            for subject in subjects:
+                c.execute(
+                    """
+                    INSERT INTO permission_subjects
+                        (permission_uid, subject_type, subject_id)
+                    VALUES (?, ?, ?)
+                    """,
+                    (uid, subject["type"], subject["id"])
+                )
+
+            for ep in endpoints:
+                for action in ep["actions"]:
+                    c.execute(
+                        """
+                        INSERT INTO permission_actions
+                            (permission_uid, endpoint_name, action)
+                        VALUES (?, ?, ?)
+                        """,
+                        (uid, ep["name"], action)
+                    )
 
     def disable_permission(self, uid):
         with self._conn() as c:

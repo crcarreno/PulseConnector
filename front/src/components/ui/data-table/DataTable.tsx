@@ -28,9 +28,14 @@ import {
 interface DataTableProps<TData> {
   columns: ColumnDef<TData>[]
   data: TData[]
+  onRowClick?: (row: TData) => void
 }
 
-export function DataTable<TData>({ columns, data }: DataTableProps<TData>) {
+export function DataTable<TData>({
+    columns,
+    data,
+    onRowClick
+     }: DataTableProps<TData>) {
   const pageSize = 20
   const [rowSelection, setRowSelection] = React.useState({})
   const table = useReactTable({
@@ -85,11 +90,13 @@ export function DataTable<TData>({ columns, data }: DataTableProps<TData>) {
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
+
                   <TableRow
-                    key={row.id}
-                    onClick={() => row.toggleSelected(!row.getIsSelected())}
-                    className="group select-none hover:bg-gray-50 hover:dark:bg-gray-900"
-                  >
+                      key={row.id}
+                      className="group cursor-pointer hover:bg-gray-50 hover:dark:bg-gray-900"
+                      onClick={() => onRowClick?.(row.original)}
+                    >
+
                     {row.getVisibleCells().map((cell, index) => (
                       <TableCell
                         key={cell.id}

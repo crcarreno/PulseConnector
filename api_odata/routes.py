@@ -113,6 +113,8 @@ def odata_insert(namespace, endpoint_name):
         return jsonify({"error": "JSON body required"}), 400
 
     try:
+        db_pool = current_app.config["DB_POOL_MANAGER"]
+        db = db_pool.get_db(endpoint["datasource"])
         result = db.insert_odata(endpoint["source"], body)
         return jsonify(result)
 
@@ -138,6 +140,8 @@ def odata_update(namespace, endpoint_name, id):
         return jsonify({"error": "JSON body required"}), 400
 
     try:
+        db_pool = current_app.config["DB_POOL_MANAGER"]
+        db = db_pool.get_db(endpoint["datasource"])
         result = db.update_odata(
             table_name=endpoint["source"],
             pk_name=endpoint.get("primary_key", "id"),

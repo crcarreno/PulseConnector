@@ -16,10 +16,7 @@ import {
 } from "@/components/Select"
 import { useAppToast } from "@/components/Toast"
 import { ColumnDef } from "@tanstack/react-table"
-import { columns } from "@/components/ui/data-table/columns"
 import { DataTable } from "@/components/ui/data-table/DataTable"
-import { usage } from "@/data/data"
-import { Permission } from "@/types/permission"
 
 type Permission = {
   uid: number
@@ -70,7 +67,7 @@ export function useDataPermissions() {
   }
 }
 
-export const permissionsColumns: ColumnDef<Endpoint>[] = [
+export const permissionsColumns: ColumnDef<Permission>[] = [
 {
   header: "Type permission",
   cell: ({ row }) => (
@@ -182,7 +179,7 @@ export default function Permissions() {
   const { groups } = useDataGroups(subjectType === "group")
   const { endpoints } = useDataEndpoints()
   const { showToast } = useAppToast()
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [endpointName, setEndpointName] = useState("")
   const [actions, setActions] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -241,16 +238,14 @@ export default function Permissions() {
     }
 
     const url = editingId
-      ? `https://localhost:5000/api/admin/permissions/${editingId}`
+      ? "https://localhost:5000/api/admin/permissions/update"
       : "https://localhost:5000/api/admin/permissions"
-
-    const method = editingId ? "PUT" : "POST"
 
     try {
       const res = await fetch(url, {
-        method,
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(editingId ? { uid: editingId, ...payload } : payload)
       })
 
       if (!res.ok) {

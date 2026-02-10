@@ -17,10 +17,7 @@ import {
 import { useAppToast } from "@/components/Toast"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { columns } from "@/components/ui/data-table/columns"
 import { DataTable } from "@/components/ui/data-table/DataTable"
-import { usage } from "@/data/data"
-import { Endpoint } from "@/types/endpoint"
 
 
 // -------------------- HOOKS --------------------
@@ -203,7 +200,7 @@ export default function Endpoints() {
   const { objects } = useDataObjects()
   const { showToast } = useAppToast()
 
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState<string | null>(null)
 
   const [name, setName] = useState("")
   const [namespace, setNamespace] = useState("")
@@ -217,7 +214,7 @@ export default function Endpoints() {
   const { listObjects } = useDataListObjects(connectionId, objectType)
 
   function loadForEdit(ep: any) {
-    setEditingId(ep.id)
+    setEditingName(ep.name)
     setName(ep.name)
     setNamespace(ep.namespace)
     setConnectionId(ep.id_connection)
@@ -233,45 +230,56 @@ export default function Endpoints() {
 
     setSubmitting(true)
 
-    const payload = {
-      name,
-      id_connection: connectionId,
-      type: objectType,
-      source,
-      namespace,
-      primary_key: primaryKey,
-      is_active: enabled,
+try {
+      const payload = editingName
+        ? {
+            name: editingName,
+            id_connection: connectionId,
+            type: objectType,
+            source,
+            namespace,
+            primary_key: primaryKey,
+          }
+        : {
+            name,
+            id_connection: connectionId,
+            type: objectType,
+            source,
+            namespace,
+            primary_key: primaryKey,
+          }
+
+      const url = editingName
+        ? "https://localhost:5000/api/admin/endpoints/update"
+        : "https://localhost:5000/api/admin/endpoints"
+
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) throw new Error(await res.text())
+
+      showToast({
+        title: editingName ? "Endpoint updated" : "Endpoint created",
+        description: "Saved successfully",
+      })
+
+      setEditingName(null)
+      setName("")
+      setNamespace("")
+      setConnectionId(undefined)
+      setObjectType(undefined)
+      setSource("")
+      setPrimaryKey("")
+      setEnabled(true)
+
+      refetch()
+    } finally {
+      setSubmitting(false)
     }
-
-    const url = editingId
-      ? `https://localhost:5000/api/admin/endpoints/${editingId}`
-      : "https://localhost:5000/api/admin/endpoints"
-
-    const method = editingId ? "PUT" : "POST"
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    })
-
-    if (!res.ok) throw new Error(await res.text())
-
-    showToast({
-      title: editingId ? "Endpoint updated" : "Endpoint created",
-      description: "Saved successfully",
-    })
-
-    setEditingId(null)
-    setName("")
-    setNamespace("")
-    setSource("")
-    setPrimaryKey("")
-    setEnabled(true)
-
-    refetch()
-    setSubmitting(false)
-  }
+}
 
   if (loading) return <p>Loading...</p>
 
@@ -341,7 +349,7 @@ export default function Endpoints() {
 
             <div className="col-span-full mt-6 flex justify-end">
               <Button type="submit" disabled={submitting}>
-                {editingId ? "Update endpoint" : "Create endpoint"}
+                {editingName ? "Update endpoint" : "Create endpoint"}
               </Button>
             </div>
 

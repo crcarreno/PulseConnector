@@ -344,7 +344,7 @@ def update_endpoint():
 
     fields = {
         k: data[k]
-        for k in ["dialect", "database", "type", "source", "namespace", "primary_key"]
+        for k in ["id_connection", "type", "source", "namespace", "primary_key"]
         if k in data
     }
 
@@ -377,6 +377,28 @@ def list_permissions():
 def get_permission():
     data = request.get_json(silent=True)
     return api_response(data=iam.get_permission(data["uid"]))
+
+
+@api_bp.post("/admin/permissions/update")
+def update_permission():
+    data = request.get_json(silent=True)
+
+    uid = data.get("uid")
+    subjects = data.get("subjects")
+    endpoints = data.get("endpoints")
+
+    if uid is None:
+        return api_response(False, error="uid is required", status=400)
+
+    if not subjects or not endpoints:
+        return api_response(
+            False,
+            error="subjects and endpoints are required",
+            status=400
+        )
+
+    iam.update_permission(uid=uid, subjects=subjects, endpoints=endpoints)
+    return api_response(data={"status": "updated"})
 
 
 @api_bp.post("/admin/permissions/disable")

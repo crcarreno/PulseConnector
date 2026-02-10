@@ -99,6 +99,15 @@ class IAMService:
 
         return self.db.grant_permission(subjects, endpoints)
 
+    def update_permission(self, uid, subjects, endpoints):
+        if not subjects:
+            raise ValueError("At least one subject is required")
+
+        if not endpoints:
+            raise ValueError("At least one endpoint is required")
+
+        self.db.update_permission(uid, subjects, endpoints)
+
     def disable_permission(self, uid):
         self.db.disable_permission(uid)
 
